@@ -10,6 +10,7 @@ static void GameInpConfigOne(int nPlayer, int nPcDev, int nAnalog, struct GameIn
 int nAppVirtualFps = 6000;			// App fps * 100
 bool bRunPause = 0;
 bool bAlwaysProcessKeyboardInput=0;
+int usejoy=0;
 
 void formatBinary(int number, int sizeBytes, char *dest, int len)
 {
@@ -141,6 +142,7 @@ int parseSwitches(int argc, char *argv[])
 //		} else if (strcmp(argv[i] + 1, "F") == 0) {
 //			nEnableFreeplayHack = 1;
 //			printf("Freeplay hack enabled\n");
+
 		} else if (strcmp(argv[i] + 1, "dumpswitches") == 0) {
 			dumpDipSwitches();
 		} else if (strncmp(argv[i] + 1, "ds=", 3) == 0) {
@@ -150,7 +152,10 @@ int parseSwitches(int argc, char *argv[])
 			if (switchNo != 0) {
 				dipSwitchSet |= setDipSwitch(switchNo);
 			}
+		} else if (strcmp(argv[i] + 1, "joy") == 0) {
+			usejoy=1;
 		}
+
 	}
 
 	return dipSwitchSet;
@@ -168,7 +173,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (romname == NULL) {
-		printf("Usage: %s [-f] [-F] [-dumpswitches] <romname>\n", argv[0]);
+		printf("Usage: %s [-f] [-F] [-dumpswitches] [-joy]  <romname>\n", argv[0]);
 		printf("e.g.: %s mslug\n", argv[0]);
 
 		return 0;
@@ -209,15 +214,16 @@ int main(int argc, char *argv[])
 	}
 
 	parseSwitches(argc, argv);
-	/*keyboard p1, joy0 p2)
-	GameInpConfig(0, 0, 1);
-	GameInpConfig(1, 1, 1);
-	*/
-
-        /* p1 joy0 , p2 joy1 */
-        GameInpConfig(0, 1, 1);
-        GameInpConfig(1, 2, 1);
-
+	if (!usejoy){
+		/*keyboard p1, joy0 p2) */
+		GameInpConfig(0, 0, 1);
+		GameInpConfig(1, 1, 1);
+	}
+	else {
+        	/* p1 joy0 , p2 joy1 */
+        	GameInpConfig(0, 1, 1);
+        	GameInpConfig(1, 2, 1);
+	}
 	RunMessageLoop();
 
 	DrvExit();
