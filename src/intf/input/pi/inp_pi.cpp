@@ -7,7 +7,7 @@
 #define MAX_JOYSTICKS (8)
 
 static int FBKtoSDL[512];
-
+extern int  nExitEmulator;
 static int nInitedSubsytems = 0;
 static SDL_Joystick* JoyList[MAX_JOYSTICKS];
 static int* JoyPrevAxes = NULL;
@@ -308,6 +308,7 @@ int SDLinpState(int nCode)
 		if (ReadKeyboard() != 0) {							// Check keyboard has been read - return not pressed on error
 			return 0;
 		}
+		if ( SDL_KEY_DOWN(FBK_ESCAPE) ) 	nExitEmulator = 1;
 		return SDL_KEY_DOWN(nCode);							// Return key state
 	}
 
@@ -318,7 +319,7 @@ int SDLinpState(int nCode)
 	if (nCode < 0x8000) {
 		// Codes 4000-8000 = Joysticks
 		int nJoyNumber = (nCode - 0x4000) >> 8;
-
+//		printf("(joystick) joy%d  ncode:%x state:%d mapped:%s\n", nJoyNumber, nCode, JoystickState(nJoyNumber, nCode & 0xFF), InputCodeDesc(nCode));
 		// Find the joystick state in our array
 		return JoystickState(nJoyNumber, nCode & 0xFF);
 	}
