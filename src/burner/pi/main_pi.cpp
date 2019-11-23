@@ -6,6 +6,7 @@ extern int nExitEmulator;
 //extern int nEnableFreeplayHack;
 static int GameInpConfig(int nPlayer, int nPcDev, int nAnalog);
 static void GameInpConfigOne(int nPlayer, int nPcDev, int nAnalog, struct GameInp* pgi, char* szi);
+INT32 display_set_controls();
 INT32 Mapcoins(struct GameInp* pgi, char* szi, INT32 nPlayer, INT32 nDevice);
 #define KEY(x) { pgi->nInput = GIT_SWITCH; pgi->Input.Switch.nCode = (UINT16)(x); }
 int nAppVirtualFps = 6000;			// App fps * 100
@@ -225,6 +226,7 @@ int main(int argc, char *argv[])
         	GameInpConfig(0, 1, 1);
         	GameInpConfig(1, 2, 1);
 	}
+	 display_set_controls();
 	RunMessageLoop();
 
 	DrvExit();
@@ -348,7 +350,6 @@ INT32 Mapcoins(struct GameInp* pgi, char* szi, INT32 nPlayer, INT32 nDevice)
 	nJoyBase = 0x4000;
         nJoyBase |= nDevice << 8;
 
-	printf("nJoyBase %x player:%d nDevice:%d\n", nJoyBase, nPlayer, nDevice);
 	switch (nPlayer) 
 	{
 		case 0:
@@ -387,4 +388,26 @@ INT32 Mapcoins(struct GameInp* pgi, char* szi, INT32 nPlayer, INT32 nDevice)
 	return 0;
 }
 
+
+INT32 display_set_controls()
+{
+        struct GameInp* pgi = NULL;
+        unsigned int i;
+        for (i = 0, pgi = GameInp; i < nGameInpCount; i++, pgi++) {
+                struct BurnInputInfo bii;
+                // Get the extra info about the input
+                bii.szInfo = NULL;
+                BurnDrvGetInputInfo(&bii, i);
+                if (bii.pVal == NULL) {
+                        continue;
+                }
+                if (bii.szInfo == NULL) {
+                        bii.szInfo = "";
+                }
+                printf("%s %s\n",  bii.szInfo ,InputCodeDesc( pgi->Input.Switch.nCode));
+
+        }
+
+        return 0;
+}
 
