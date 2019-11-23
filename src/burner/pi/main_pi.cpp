@@ -14,12 +14,21 @@ int nAppVirtualFps = 6000;			// App fps * 100
 bool bRunPause = 0;
 bool bAlwaysProcessKeyboardInput=0;
 int usejoy=0;
-
+int usebarcade=0;
 static unsigned int capcom6Layout[] = {
+// use snes layout for xbox360  controller
 	2, 3, 4, 0, 1, 5,
 };
 
+/* keep the snes layout on xbox360 controller
+  Phscial button layout on the encoder should be
+   2 3 4
+   0 1 5
+  no need to change this for sf2 as use the capcom6Layout when for it when its needed
+*/
+
 static unsigned int barcade_Layout[] = {
+*/
         0, 1, 5, 2, 3, 4,
 
 };
@@ -67,7 +76,7 @@ static bool usesStreetFighterLayout()
 
 	if (nFireButtons >= 5 && (BurnDrvGetHardwareCode() & HARDWARE_PUBLIC_MASK) == HARDWARE_CAPCOM_CPS2 && !Volume) {
 		bStreetFighterLayout = true;
- 	printf("nFireButtons:%d  bStreetFighterLayout%d Volume:%d\n",nFireButtons,  bStreetFighterLayout,Volume);
+ 	printf("Using SF2 Layout\n");
 	}
 return  bStreetFighterLayout;
 }
@@ -194,7 +203,7 @@ int parseSwitches(int argc, char *argv[])
 		}
 
 		if (strcmp(argv[i] + 1, "f") == 0) {
-			if (enableFreeplay()) {
+ 			if (enableFreeplay()) {
 				printf("Freeplay enabled\n");
 			} else {
 				fprintf(stderr, "Don't know how to enable freeplay - try the hack\n");
@@ -214,7 +223,10 @@ int parseSwitches(int argc, char *argv[])
 			}
 		} else if (strcmp(argv[i] + 1, "joy") == 0) {
 			usejoy=1;
-		}
+		} else if (strcmp(argv[i] + 1, "barcade") == 0) {
+			printf("barcade switch set\n");
+                        usebarcade=1;
+                }
 
 	}
 
@@ -423,17 +435,16 @@ INT32 Mapcoins(struct GameInp* pgi, char* szi, INT32 nPlayer, INT32 nDevice)
                                 KEY(nJoyBase + 0x80 + 9);
                                 return 0;
 			}
-			if (strncmp(szi, "p1 fire ", 7) == 0 ) 
+			if (strncmp(szi, "p1 fire ", 7) == 0  ) 
 			{
-				printf("sf2:%d\n",bStreetFighterLayout);
 				char *szb = szi + 7;
 				INT32 nButton = strtol(szb, NULL, 0);
 				if (nButton >= 1) 
 					{
 						nButton--;
 					}
-				KEY(nJoyBase + 0x80 + capcom6Layout[nButton]);   
-                     
+				if (bStreetFighterLayout ) KEY(nJoyBase + 0x80 + capcom6Layout[nButton]);
+				if (!bStreetFighterLayout && usebarcade)  KEY(nJoyBase + 0x80 +  barcade_Layout[nButton])
 			}
 			break;
                 case 1:
@@ -446,19 +457,20 @@ INT32 Mapcoins(struct GameInp* pgi, char* szi, INT32 nPlayer, INT32 nDevice)
                         if (strcmp(szi, "p2 start") == 0 && nPlayer == 1 )
                         {
                                 KEY(nJoyBase + 0x80 + 9);
-                                return 0;
+                                  return 0;
 
                         }
-                        if (strncmp(szi, "p2 fire ", 7 /*&& bStreetFighterLayout*/ ) == 0 )
+                        if (strncmp(szi, "p2 fire ", 7  ) == 0  &&  bStreetFighterLayout  )
                         {
-                                printf("true:%d\n",bStreetFighterLayout);
                                 char *szb = szi + 7;
                                 INT32 nButton = strtol(szb, NULL, 0);
                                 if (nButton >= 1)
                                         {
                                                 nButton--;
                                         }
-                                KEY(nJoyBase + 0x80 + capcom6Layout[nButton]);
+                                if (bStreetFighterLayout ) KEY(nJoyBase + 0x80 + capcom6Layout[nButton]);
+                                if (!bStreetFighterLayout && usebarcade)  KEY(nJoyBase + 0x80 +  barcade_Layout[nButton])
+
 			}
                         break;
 
