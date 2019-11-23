@@ -15,20 +15,29 @@ bool bRunPause = 0;
 bool bAlwaysProcessKeyboardInput=0;
 int usejoy=0;
 int usebarcade=0;
+
+/*  use snes layout for xbox360  controller 
+a b r = kick weak, medium strong
+x y l = punch weak, medium strong */
+     
 static unsigned int capcom6Layout[] = {
-// use snes layout for xbox360  controller
+ use snes layout for xbox360  controller
+
 	2, 3, 4, 0, 1, 5,
 };
 
+
 /* keep the snes layout on xbox360 controller
   Phscial button layout on the encoder should be
+   X Y L 
    2 3 4
    0 1 5
-  no need to change this for sf2 as use the capcom6Layout when for it when its needed
+   A B R
+  no need to change this for sf2 as use the capcom6Layout when for it when its needed its the same as that with the rows reversed
 */
 
 static unsigned int barcade_Layout[] = {
-*/
+
         0, 1, 5, 2, 3, 4,
 
 };
