@@ -1,3 +1,4 @@
+
 #include "burner.h"
 #include <sys/stat.h>
 #include <unistd.h>
@@ -13,6 +14,63 @@ int nAppVirtualFps = 6000;			// App fps * 100
 bool bRunPause = 0;
 bool bAlwaysProcessKeyboardInput=0;
 int usejoy=0;
+
+static unsigned int capcom6Layout[] = {
+	2, 3, 4, 0, 1, 5,
+};
+
+static unsigned int barcade_Layout[] = {
+        0, 1, 5, 2, 3, 4,
+
+};
+
+
+static bool usesStreetFighterLayout()
+{
+	int fireButtons = 0;
+	bool Volume = false;
+	struct BurnInputInfo bii;
+
+	for (UINT32 i = 0; i < 0x1000; i++) {
+		bii.szName = NULL;
+		if (BurnDrvGetInputInfo(&bii,i)) {
+			break;
+		}
+		
+		BurnDrvGetInputInfo(&bii, i);
+		if (bii.szName == NULL) {
+			bii.szName = "";
+		}
+
+		bool bPlayerInInfo = (toupper(bii.szInfo[0]) == 'P' && bii.szInfo[1] >= '1' && bii.szInfo[1] <= '4'); // Because some of the older drivers don't use the standard input naming.
+		bool bPlayerInName = (bii.szName[0] == 'P' && bii.szName[1] >= '1' && bii.szName[1] <= '4');
+
+		if (bPlayerInInfo || bPlayerInName) {
+			INT32 nPlayer = 0;
+
+			if (bPlayerInName) {
+				nPlayer = bii.szName[1] - '1';
+			}
+			if (bPlayerInInfo && nPlayer == 0) {
+				nPlayer = bii.szInfo[1] - '1';
+			}
+			if (nPlayer == 0) {
+				if (strncmp(" fire", bii.szInfo + 2, 5) == 0) {
+					fireButtons++;
+				}
+			}
+			if ((strncmp("Volume", bii.szName, 6) == 0) && (strncmp(" fire", bii.szInfo + 2, 5) == 0)) {
+				Volume = true;
+			}
+		}
+	}
+
+	if (nFireButtons >= 5 && (BurnDrvGetHardwareCode() & HARDWARE_PUBLIC_MASK) == HARDWARE_CAPCOM_CPS2 && !Volume) {
+		bStreetFighterLayout = true;
+ 	printf("nFireButtons:%d  bStreetFighterLayout%d Volume:%d\n",nFireButtons,  bStreetFighterLayout,Volume);
+	}
+return  bStreetFighterLayout;
+}
 
 void formatBinary(int number, int sizeBytes, char *dest, int len)
 {
@@ -215,6 +273,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
+	bStreetFighterLayout = usesStreetFighterLayout();
 	parseSwitches(argc, argv);
 	if (!usejoy){
 		/*keyboard p1, joy0 p2) */
@@ -226,7 +285,7 @@ int main(int argc, char *argv[])
         	GameInpConfig(0, 1, 1);
         	GameInpConfig(1, 2, 1);
 	}
-	 display_set_controls();
+	display_set_controls();
 	RunMessageLoop();
 
 	DrvExit();
@@ -349,7 +408,7 @@ INT32 Mapcoins(struct GameInp* pgi, char* szi, INT32 nPlayer, INT32 nDevice)
  	nDevice--; 
 	nJoyBase = 0x4000;
         nJoyBase |= nDevice << 8;
-
+ 	bStreetFighterLayout= usesStreetFighterLayout();
 	switch (nPlayer) 
 	{
 		case 0:
@@ -363,9 +422,19 @@ INT32 Mapcoins(struct GameInp* pgi, char* szi, INT32 nPlayer, INT32 nDevice)
                         {
                                 KEY(nJoyBase + 0x80 + 9);
                                 return 0;
-
-                        }
-
+			}
+			if (strncmp(szi, "p1 fire ", 7) == 0 ) 
+			{
+				printf("sf2:%d\n",bStreetFighterLayout);
+				char *szb = szi + 7;
+				INT32 nButton = strtol(szb, NULL, 0);
+				if (nButton >= 1) 
+					{
+						nButton--;
+					}
+				KEY(nJoyBase + 0x80 + capcom6Layout[nButton]);   
+                     
+			}
 			break;
                 case 1:
                         if (strcmp(szi, "p2 coin" ) == 0 && nPlayer == 1 )
@@ -380,7 +449,17 @@ INT32 Mapcoins(struct GameInp* pgi, char* szi, INT32 nPlayer, INT32 nDevice)
                                 return 0;
 
                         }
-
+                        if (strncmp(szi, "p2 fire ", 7 /*&& bStreetFighterLayout*/ ) == 0 )
+                        {
+                                printf("true:%d\n",bStreetFighterLayout);
+                                char *szb = szi + 7;
+                                INT32 nButton = strtol(szb, NULL, 0);
+                                if (nButton >= 1)
+                                        {
+                                                nButton--;
+                                        }
+                                KEY(nJoyBase + 0x80 + capcom6Layout[nButton]);
+			}
                         break;
 
 	}
