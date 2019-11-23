@@ -92,6 +92,6 @@ vc: FORCE
 	@$(MAKE) -s -f makefile.vc
 
 pi: FORCE
-	@$(MAKE) -s -f makefile.pi
+	@$(MAKE) -s -f makefile.pi -j4
 
 FORCE:
