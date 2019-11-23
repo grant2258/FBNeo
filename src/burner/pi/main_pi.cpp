@@ -6,7 +6,8 @@ extern int nExitEmulator;
 //extern int nEnableFreeplayHack;
 static int GameInpConfig(int nPlayer, int nPcDev, int nAnalog);
 static void GameInpConfigOne(int nPlayer, int nPcDev, int nAnalog, struct GameInp* pgi, char* szi);
-
+INT32 Mapcoins(struct GameInp* pgi, char* szi, INT32 nPlayer, INT32 nDevice);
+#define KEY(x) { pgi->nInput = GIT_SWITCH; pgi->Input.Switch.nCode = (UINT16)(x); }
 int nAppVirtualFps = 6000;			// App fps * 100
 bool bRunPause = 0;
 bool bAlwaysProcessKeyboardInput=0;
@@ -291,22 +292,29 @@ static int GameInpConfig(int nPlayer, int nPcDev, int nAnalog) {
 	GameInpCheckLeftAlt();
 	return 0;
 }
+
 static void GameInpConfigOne(int nPlayer, int nPcDev, int nAnalog, struct GameInp* pgi, char* szi) {
 	switch (nPcDev) {
 		case 0:
 			GamcPlayer(pgi, szi, nPlayer, -1); // Keyboard
 			GamcAnalogKey(pgi, szi, nPlayer, nAnalog);
 			GamcMisc(pgi, szi, nPlayer);
+ 			Mapcoins(pgi, szi, nPlayer, nPcDev);
 			break;
 		case 1:
 			GamcPlayer(pgi, szi, nPlayer, 0); // Joystick 1
 			GamcAnalogJoy(pgi, szi, nPlayer, 0, nAnalog);
 			GamcMisc(pgi, szi, nPlayer);
+			 Mapcoins(pgi, szi, nPlayer, nPcDev);
+
+
 			break;
 		case 2:
 			GamcPlayer(pgi, szi, nPlayer, 1); // Joystick 2
 			GamcAnalogJoy(pgi, szi, nPlayer, 1, nAnalog);
 			GamcMisc(pgi, szi, nPlayer);
+                        Mapcoins(pgi, szi, nPlayer, nPcDev);
+
 			break;
 		case 3:
 			GamcPlayer(pgi, szi, nPlayer, 2); // Joystick 3
@@ -331,3 +339,52 @@ static void GameInpConfigOne(int nPlayer, int nPcDev, int nAnalog, struct GameIn
 			break;
 	}
 }
+
+INT32 Mapcoins(struct GameInp* pgi, char* szi, INT32 nPlayer, INT32 nDevice)
+{
+	INT32 nJoyBase = 0;
+	if (nDevice == 0) return 0; // using keyboard for this player
+ 	nDevice--; 
+	nJoyBase = 0x4000;
+        nJoyBase |= nDevice << 8;
+
+	printf("nJoyBase %x player:%d nDevice:%d\n", nJoyBase, nPlayer, nDevice);
+	switch (nPlayer) 
+	{
+		case 0:
+			if (strcmp(szi, "p1 coin" ) == 0 && nPlayer == 0 ) 
+			{
+                                KEY(nJoyBase + 0x80 + 8);
+                                return 0;
+			        
+        		}
+                        if (strcmp(szi, "p1 start") == 0 && nPlayer == 0 )
+                        {
+                                KEY(nJoyBase + 0x80 + 9);
+                                return 0;
+
+                        }
+
+			break;
+                case 1:
+                        if (strcmp(szi, "p2 coin" ) == 0 && nPlayer == 1 )
+                        {
+                                KEY(nJoyBase + 0x80 + 8);
+                                return 0;
+
+                        }
+                        if (strcmp(szi, "p2 start") == 0 && nPlayer == 1 )
+                        {
+                                KEY(nJoyBase + 0x80 + 9);
+                                return 0;
+
+                        }
+
+                        break;
+
+	}
+
+	return 0;
+}
+
+
