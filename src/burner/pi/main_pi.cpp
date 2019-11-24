@@ -21,8 +21,6 @@ a b r = kick weak, medium strong
 x y l = punch weak, medium strong */
      
 static unsigned int capcom6Layout[] = {
- use snes layout for xbox360  controller
-
 	2, 3, 4, 0, 1, 5,
 };
 
