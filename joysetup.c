@@ -6,17 +6,18 @@
 FILE * fp;
 
 
-char name[8][6] =	{'A', 0     },
-					{'B', 0     },
-					{'X', 0     },
-					{'Y', 0     },
-					{'L', 'B', 0},
-					{'R', 'B', 0},
-					{'S', 't', 'a', 'r', 't' ,0 },
-					{'S', 'e', 'l' ,0 },
+char name[8][6] =
+	{'A', 0},
+	{'B', 0},
+	{'X', 0},
+	{'Y', 0},
+	{'L', 'B', 0},
+	{'R', 'B', 0},
+	{'S', 't', 'a', 'r', 't', 0},
+	{'S', 'e', 'l', 0},
 };
 
-int joystickmap[4][8] = { -1 } ;
+int joystickmap[4][8] = { -1 };
 
 static SDL_Joystick* JoyList[4];
 
@@ -67,24 +68,24 @@ void main(void)
 		buttonCount = SDL_JoystickNumButtons(joystick);
 		int counter =0;
 		int ask_for_button=1;
-		
+
 		fp = fopen(SDL_JoystickName(i),"w");
 
 		while (counter < 8 ) // use a while loop for a change :)
 		{
 			SDL_PumpEvents();
 			SDL_JoystickUpdate();
-			
+
 			int result;
-		
+
 			if ( ask_for_button )
 			{
-		
+
 				printf("please press a button for %s \n",name[counter]);
 				ask_for_button = 0;
 			}
 			result = state(buttonCount,joystick);
-			
+
 			if (result != -1)
 			{
 				printf("button %d selected\n",result);
