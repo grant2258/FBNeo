@@ -278,6 +278,21 @@ int main(int argc, char *argv[])
 
 	printf("Starting %s\n", romname);
 
+
+	printf("%i joysticks were found.\n\n", SDL_NumJoysticks() );
+	printf("The names of the joysticks are:\n");
+
+	if (SDL_Init( SDL_INIT_JOYSTICK ) < 0)
+	    {
+	        fprintf(stderr, "Couldn't initialize SDL: %s\n", SDL_GetError());
+        
+	    }
+
+	for( int i=0; i < SDL_NumJoysticks(); i++ ) 
+	{
+	        printf("    %s\n", SDL_JoystickName(i));
+    	}
+
 	// Create the nvram directory, if it doesn't exist
 	const char *nvramPath = "./nvram";
 	if (access(nvramPath, F_OK) == -1) {
