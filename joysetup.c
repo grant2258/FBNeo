@@ -6,7 +6,7 @@
 FILE * fp;
 
 
-char name[8][6] = 	{'A', 0     },
+char name[8][6] =	{'A', 0     },
 					{'B', 0     },
 					{'X', 0     },
 					{'Y', 0     },
@@ -44,11 +44,11 @@ void main(void)
 	joystick_count = SDL_NumJoysticks();
 	printf("%d joysticks were found.\n\n", joystick_count );
 
-	for( int i=0; i < joystick_count; i++ ) 
+	for( int i=0; i < joystick_count; i++ )
 	{
 		JoyList[i] = SDL_JoystickOpen(i);
-		printf("************************************************\n");	
-   		printf(" setting up joy%d        	  	        \n",i);
+		printf("************************************************\n");
+		printf(" setting up joy%d\n",i);
 		printf(" %s\n",SDL_JoystickName(i));
 		printf("************************************************\n");
 
@@ -80,21 +80,21 @@ void main(void)
 			if ( ask_for_button )
 			{
 		
-				printf("please press a button for %s \n",name[counter]); 
+				printf("please press a button for %s \n",name[counter]);
 				ask_for_button = 0;
 			}
 			result = state(buttonCount,joystick);
 			
-			if (result != -1)  
+			if (result != -1)
 			{
 				printf("button %d selected\n",result);
-				fprintf(fp, "BUTTON%d = %d\n",counter, result);  
+				fprintf(fp, "BUTTON%d = %d\n",counter, result);
 				counter ++;
 				ask_for_button =1;
 				SDL_Delay(300);
 			}
 		}
-		fclose(fp);	
+		fclose(fp);
 	}
 };
 
