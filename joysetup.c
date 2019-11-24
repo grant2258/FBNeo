@@ -1,12 +1,16 @@
 #include "SDL.h"
 #include <stdio.h>
 #include <stdlib.h>
-//
+/*todo
+  add a swich to only set controllers that arent already configured
+  at the moment it will just loop through all your joysticks you have plugged in.
+  as its set per device name if you have two identical conrollers no need to set them twice.
+*/
 
 FILE * fp;
 
 
-char name[8][6] =
+char name[8][6] = {
 	{'A', 0},
 	{'B', 0},
 	{'X', 0},
