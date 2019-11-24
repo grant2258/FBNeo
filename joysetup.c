@@ -42,24 +42,24 @@ void main(void)
 	}
 	joystick_count = SDL_NumJoysticks();
 	printf("%d joysticks were found.\n\n", joystick_count );
-	printf("The names of the joysticks are:\n");
-
-   //     printf("Controller name:%s          \n",
-        printf("\r[LB]                                  [RB]\n");
-        printf("\r                                         \n");
-        printf("\r                                  [Y]    \n");
-        printf("\r                                         \n");
-        printf("\r           [start] [selct]   [X]   [B]   \n");
-        printf("\r                                         \n");
-        printf("\r                               [A]       \n");
-        printf("\r                                         \n");
 
 	for( int i=0; i < joystick_count; i++ ) 
 	{
-		printf("  %d  %s\n",i, SDL_JoystickName(i));
 		JoyList[i] = SDL_JoystickOpen(i);
-	
+		printf("************************************************\n");	
+   		printf(" setting up joy%d        	  	        \n",i);
+		printf(" %s\n",SDL_JoystickName(i));
+		printf("************************************************\n");
 
+       		printf("*[LB]                                     [RB] *\n");
+	        printf("*                                              *\n");
+	        printf("*     [^]                              [Y]     *\n");
+	        printf("*                                              *\n");
+	        printf("* [<]     [>]   [start] [selct]   [X]   [B]    *\n");
+	        printf("*                                              *\n");
+	        printf("*     [v]                          [A]         *\n");
+	        printf("*                                              *\n");
+    		printf("************************************************\n\n");
 
 		SDL_Joystick *joystick = JoyList[i];
 		SDL_JoystickEventState(SDL_IGNORE);
