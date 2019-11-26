@@ -2,9 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 /*todo
-  add a swich to only set controllers that arent already configured
+  add a swich to only set controllers that arent already configured.
   at the moment it will just loop through all your joysticks you have plugged in.
+
   as its set per device name if you have two identical conrollers no need to set them twice.
+
+  add error hecking and abort option
+
 */
 
 FILE * fp;
@@ -28,7 +32,7 @@ static SDL_Joystick* JoyList[4];
 
 int state (int buttonCount, SDL_Joystick *joystick)
 {
-	for (int button = 0;  button < buttonCount; button++) 
+	for (int button = 0;  button < buttonCount; button++)
 	{
 		int state = SDL_JoystickGetButton(joystick, button);
 		if (state) return button;
@@ -36,7 +40,7 @@ int state (int buttonCount, SDL_Joystick *joystick)
 	return -1;
 }
 
-void main(void)
+int main(int argc, char *argv[])
 {
 	int buttonCount;
 	int joystick_count;
@@ -61,7 +65,7 @@ void main(void)
 		printf("*                                              *\n");
 		printf("*     [^]                              [Y]     *\n");
 		printf("*                                              *\n");
-		printf("* [<]     [>]   [start] [selct]   [X]   [B]    *\n");
+		printf("* [<]     [>]   [start] [select]  [X]   [B]    *\n");
 		printf("*                                              *\n");
 		printf("*     [v]                          [A]         *\n");
 		printf("*                                              *\n");
@@ -93,7 +97,7 @@ void main(void)
 			if (result != -1)
 			{
 				printf("button %d selected\n",result);
-				fprintf(fp, "BUTTON%d = %d\n",counter, result);
+				fprintf(fp, "%s %d\n",name[counter], result);
 				counter ++;
 				ask_for_button =1;
 				SDL_Delay(300);
