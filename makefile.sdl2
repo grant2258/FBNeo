@@ -5,6 +5,8 @@
 # are generated as required.
 
 unexport
+#enable this to stop the name conflicts and name the zips the same as the driver does
+ALT_DAT = 1
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -238,6 +240,11 @@ endif
 
 ifdef BUILD_X64_EXE
 	DEF := $(DEF) -DBUILD_X64_EXE -DXBYAK_NO_OP_NAMES -DMIPS3_X64_DRC
+endif
+
+ifdef ALT_DAT
+CFLAGS += -DALT_DAT
+CXXFLAGS += -DALT_DAT
 endif
 
 ifdef	SYMBOL

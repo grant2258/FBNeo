@@ -229,7 +229,11 @@ INT32 SpectrumGetZipName(char** pszName, UINT32 i)
 		szFilename[j] = pszGameName[j + 5];
 	}
 	
+	#if !defined(ALT_DAT)  
 	*pszName = szFilename;
+	#else 
+	*pszName = pszGameName;
+	#endif
 
 	return 0;
 }

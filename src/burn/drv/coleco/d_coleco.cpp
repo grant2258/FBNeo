@@ -653,7 +653,11 @@ INT32 CVGetZipName(char** pszName, UINT32 i)
 		szFilename[j] = pszGameName[j + 3];
 	}
 
+	#if !defined(ALT_DAT)  
 	*pszName = szFilename;
+	#else 
+	*pszName = pszGameName;
+	#endif
 
 	return 0;
 }
