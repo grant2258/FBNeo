@@ -27,13 +27,13 @@ static int screenH = 0;
 struct MenuItem
 {
 	const char* name;			// The filename of the zip file (without extension)
-  void (*menuFunction)();
+  int (*menuFunction)();
   char* (*menuText)();
 };
 
 #define MAINMENU 0
-#define SOUNDMENU 1
-#define GRAPHICSMENU 2
+#define DIPMENU 1
+#define CONTROLLERMENU 2
 #define SAVESTATE 3
 #define LOADSTATE 4
 #define SCREENSHOT 5
@@ -43,39 +43,65 @@ struct MenuItem
 static UINT16 current_menu = MAINMENU;
 static UINT16 current_selected_item = 0;
 
-void QuickSave()
+int QuickSave()
 {
   QuickState(1);
+  return 1;
 }
 
-void QuickLoad()
+int QuickLoad()
 {
   QuickState(0);
+  return 1;
 }
 
-void GraphicsMenuSelected()
+int MainMenuSelected()
 {
   current_selected_item = 0;
-  current_menu = GRAPHICSMENU;
+  current_menu = MAINMENU;
+  return 0;
 }
 
-void SoundMenuSelected()
+int ControllerMenuSelected()
 {
   current_selected_item = 0;
-  current_menu = SOUNDMENU;
+  current_menu = CONTROLLERMENU;
+  //TODO work out UI for controller mappings
+  return 0;
+}
+
+int DIPMenuSelected()
+{
+  current_selected_item = 0;
+  current_menu = DIPMENU;
+  //TODO Load the dips into an array of MenuItems
+  return 0;
 }
 
 #define MAINMENU_COUNT 6
 
 struct MenuItem mainMenu[MAINMENU_COUNT] =
 {
- {"Sound Options\0", SoundMenuSelected, NULL},
- {"Graphics Options\0", GraphicsMenuSelected, NULL},
+ {"DIP Switches\0", DIPMenuSelected, NULL},
+ {"Controller Options\0", ControllerMenuSelected, NULL},
  {"Save State\0", QuickSave, NULL},
  {"Load State\0", QuickLoad, NULL},
  {"Save Screenshot\0", NULL, NULL},
  {"Reset!\0", NULL, NULL},
+};
 
+#define DIPMENU_COUNT 1
+
+struct MenuItem dipMenu[DIPMENU_COUNT] =
+{
+	{"BACK \0", MainMenuSelected, NULL},
+};
+
+#define CONTROLLERMENU_COUNT 1
+
+struct MenuItem controllerMenu[CONTROLLERMENU_COUNT] =
+{
+	{"BACK \0", MainMenuSelected, NULL},
 };
 
 // menu instance tracking
@@ -109,6 +135,14 @@ void ingame_gui_render()
         current_item_count = MAINMENU_COUNT;
         current_menu_items = mainMenu;
         break;
+	  case DIPMENU:
+	  	current_item_count = DIPMENU_COUNT;
+	  	current_menu_items = dipMenu;
+	  	break;
+	  case CONTROLLERMENU:
+	 	current_item_count = CONTROLLERMENU_COUNT;
+	 	current_menu_items = controllerMenu;
+	 	break;
   }
 
   for(int i=0; i < current_item_count; i ++)
@@ -159,10 +193,9 @@ int ingame_gui_process()
 			case SDLK_RETURN:
 				if (current_menu_items[current_selected_item].menuFunction!=NULL)
 				{
-					void (*menuFunction)();
+					int (*menuFunction)();
 					menuFunction = current_menu_items[current_selected_item].menuFunction;
-					menuFunction();
-					return 1;
+					return menuFunction();
 				}
 				break;
       }
