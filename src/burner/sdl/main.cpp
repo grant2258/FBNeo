@@ -24,6 +24,7 @@ bool bAppFullscreen = 0;
 bool bAlwaysProcessKeyboardInput = 0;
 int  usemenu = 0, usejoy = 0, vsync = 1, dat = 0;
 bool saveconfig = 1;
+bool bIntegerScale = false;
 
 TCHAR szAppBurnVer[16];
 char videofiltering[3];
@@ -59,7 +60,12 @@ int parseSwitches(int argc, char* argv[])
 
 		if (strcmp(argv[i] + 1, "novsync") == 0)
 		{
-			set_commandline_option(vsync, 0) // might need to change this to bit flags if there is more than one gfx option
+			set_commandline_option(vsync, 0)
+		}
+
+		if (strcmp(argv[i] + 1, "integerscale") == 0)
+		{
+			set_commandline_option(bIntegerScale, 1)
 		}
 
 		if (strcmp(argv[i] + 1, "dat") == 0)
@@ -237,10 +243,10 @@ int main(int argc, char* argv[])
 	UINT32      i = 0;
 	bool gamefound = 0;
 	atexit(bye);
-// TODO: figure out if we can use hardware Gamma until then, force software gamma
-  bVidUseHardwareGamma = 0;
-  bHardwareGammaOnly = 0;
-//
+	// TODO: figure out if we can use hardware Gamma until then, force software gamma
+	bVidUseHardwareGamma = 0;
+	bHardwareGammaOnly = 0;
+	//
 
 	// Make version string
 	if (nBurnVer & 0xFF)
@@ -271,7 +277,7 @@ int main(int argc, char* argv[])
 
 	if (romname == NULL)
 	{
-		printf("Usage: %s [-cd] [-joy] [-menu] [-novsync] [-fullscreen] [-dat] [-autosave] [-nearest] [-linear] [-best] <romname>\n", argv[0]);
+		printf("Usage: %s [-cd] [-joy] [-menu] [-novsync] [-integerscale] [-fullscreen] [-dat] [-autosave] [-nearest] [-linear] [-best] <romname>\n", argv[0]);
 		printf("Note the -menu switch does not require a romname\n");
 		printf("e.g.: %s mslug\n", argv[0]);
 		printf("e.g.: %s -menu -joy\n", argv[0]);
