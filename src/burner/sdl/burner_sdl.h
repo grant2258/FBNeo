@@ -42,6 +42,7 @@ extern bool  bAppShowFPS;   // TODO: Also also bad
 extern bool  bAlwaysProcessKeyboardInput;
 extern TCHAR szAppBurnVer[16];
 extern bool  bAppFullscreen;
+extern bool bIntegerScale;
 
 extern TCHAR* GetIsoPath();
 

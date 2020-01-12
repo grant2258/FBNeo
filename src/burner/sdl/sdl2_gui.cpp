@@ -382,7 +382,10 @@ void gui_init()
 		printf("Could not create renderer: %s\n", SDL_GetError());
 		return;
 	}
-
+	if (bIntegerScale)
+	{
+		SDL_RenderSetIntegerScale(sdlRenderer, SDL_TRUE);
+	}
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, videofiltering);
 	SDL_RenderSetLogicalSize(sdlRenderer, nVidGuiWidth, nVidGuiHeight);
 
