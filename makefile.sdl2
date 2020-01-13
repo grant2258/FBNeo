@@ -193,7 +193,7 @@ ASFLAGS	=  -O1 -f coff -w-orphan-labels
 	DEF	:= -DBUILD_SDL2 -DUSE_SPEEDHACKS -DFILENAME=$(NAME) -DUSE_FILE32API
 
 ifdef WINDOWS
-	DEF	:= $(DEF) -DWINDOWS
+	DEF	:= $(DEF) -DSDL_WINDOWS
 endif 
 
 ifdef UNICODE
