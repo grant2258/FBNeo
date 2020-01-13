@@ -192,6 +192,10 @@ ASFLAGS	=  -O1 -f coff -w-orphan-labels
 # FIXME
 	DEF	:= -DBUILD_SDL2 -DUSE_SPEEDHACKS -DFILENAME=$(NAME) -DUSE_FILE32API
 
+ifdef WINDOWS
+	DEF	:= $(DEF) -DWINDOWS
+endif 
+
 ifdef UNICODE
 	DEF	:= $(DEF) -D_UNICODE
 endif
@@ -325,7 +329,7 @@ $(objdir)drivers.o:		$(autdrv)
 $(NAME):	$(allobj) $(objdir)drivers.o
 	@echo
 	@echo Linking executable... $(NAME)
-	@$(LD) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(lib)
+	@$(LD)  -mconsole $(CFLAGS) $(LDFLAGS) -o $@ $^ $(lib)
 
 ifdef	DEBUG
 
@@ -419,7 +423,7 @@ ctv.d ctv.o:	$(ctv.h)
 $(ctv.h):	ctv_make.cpp
 	@echo Generating $(srcdir)dep/generated/$(@F)...
 	@$(CC) $(CXXFLAGS) $(LDFLAGS) $< \
-		-o $(subst $(srcdir),$(objdir),$(<D))/$(<F:.cpp=.exe)
+		-o $(subst $(srcdir),$(objdir),$(<D))/$(<F:.cpp=.exe)  -Dmain=main
 	@$(subst $(srcdir),$(objdir),$(<D))/$(<F:.cpp=.exe) >$@
 
 #
