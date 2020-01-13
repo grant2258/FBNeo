@@ -52,7 +52,6 @@ static int Init()
 	int nMemLen = 0;
 	int GameAspectX = 4, GameAspectY = 3;
 	int display_w = 400, display_h = 300;
-	int nScale = 2;
 
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
@@ -107,8 +106,8 @@ static int Init()
 			title,
 			SDL_WINDOWPOS_CENTERED,
 			SDL_WINDOWPOS_CENTERED,
-			display_h*nScale,
-			display_w*nScale,
+			display_h,
+			display_w,
 			screenFlags
 		);
 
@@ -119,8 +118,8 @@ static int Init()
 			title,
 			SDL_WINDOWPOS_CENTERED,
 			SDL_WINDOWPOS_CENTERED,
-			display_w*nScale,
-			display_h*nScale,
+			display_w,
+			display_h,
 			screenFlags
 		);
 	}
@@ -162,8 +161,13 @@ static int Init()
 	}
 	printf("bbp: %d\n", nVidImageDepth);
 
+	if (bIntegerScale)
+	{
+		SDL_RenderSetIntegerScale(sdlRenderer, SDL_TRUE);
+	}
+
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, videofiltering);
-	// SDL_RenderSetIntegerScale(sdlRenderer, SDL_TRUE);   // Probably best not turn this on
+
 	printf("setting logical size w: %d h: %d", display_w, display_h);
 	if (nRotateGame)
 	{
