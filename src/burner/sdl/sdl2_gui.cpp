@@ -106,7 +106,12 @@ void star_render(SDL_Renderer* renderer)
 
 static void CreateRomDatName(TCHAR* szRomDat)
 {
+#if defined(BUILD_SDL2) && !defined(SDL_WINDOWS)	
 	_stprintf(szRomDat, _T("%s/roms.found"), SDL_GetPrefPath("fbneo", "config"));
+#else
+	_stprintf(szRomDat, _T("fbneo.dat"));
+#endif 
+
 
 	return;
 }

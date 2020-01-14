@@ -242,6 +242,7 @@ int main(int argc, char* argv[])
 	const char* romname = NULL;
 	UINT32      i = 0;
 	bool gamefound = 0;
+	int fail = 0;
 	atexit(bye);
 	// TODO: figure out if we can use hardware Gamma until then, force software gamma
 	bVidUseHardwareGamma = 0;
@@ -264,6 +265,17 @@ int main(int argc, char* argv[])
 	snprintf(videofiltering, 3, "0");
 
 	printf("FBNeo v%s\n", szAppBurnVer);
+	
+	// create a default ini if one is not valid
+	fail = ConfigAppLoad();
+	if (fail)
+	{
+		if (saveconfig)
+		{
+			ConfigAppSave();
+		}
+	}				
+
 	for (int i = 1; i < argc; i++)
 	{
 		if (*argv[i] != '-' && !gamefound)
@@ -303,7 +315,28 @@ int main(int argc, char* argv[])
 #endif
 
 #ifdef BUILD_SDL2
-#ifdef _WIN32
+#ifdef SDL_WINDOWS
+	char *base_path = SDL_GetBasePath();
+#define DIRCNT 9
+	// Make sure there are roms and cfg subdirectories
+	TCHAR szDirs[DIRCNT][MAX_PATH] = {
+		{_T("config")},
+		{_T("config/games")},
+		{_T("config/ips")},
+		{_T("config/localisation")},
+		{_T("config/presets")},
+		{_T("recordings")},
+		{_T("roms")},
+		{_T("savestates")},
+		{_T("screenshots")},
+	};
+	TCHAR currentPath[MAX_PATH];
+	for(int x = 0; x < DIRCNT; x++) {
+		snprintf(currentPath, MAX_PATH, "%s%s", base_path, szDirs[x]);
+		CreateDirectory(currentPath, NULL);
+	}
+#undef DIRCNT
+
 	SDL_setenv("SDL_AUDIODRIVER", "directsound", true);        // fix audio for windows
 #endif
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_AUDIO) < 0)
@@ -315,7 +348,7 @@ int main(int argc, char* argv[])
 
 	SDL_ShowCursor(SDL_DISABLE);
 
-#ifdef BUILD_SDL2
+#if defined(BUILD_SDL2) && !defined(SDL_WINDOWS)
 	szSDLhiscorePath = SDL_GetPrefPath("fbneo", "hiscore");
 	szSDLeepromPath = SDL_GetPrefPath("fbneo", "eeprom");
 	szSDLHDDPath = SDL_GetPrefPath("fbneo", "hdd");
@@ -326,9 +359,18 @@ int main(int argc, char* argv[])
 	_stprintf(szAppSamplesPath, _T("%s"), szSDLSamplePath);
 #endif
 
-	ConfigAppLoad();
+	fail = ConfigAppLoad();
+	if (fail)
+	{
+		if (saveconfig)
+		{
+			ConfigAppSave();
+		}
+	}
 	ComputeGammaLUT();
+#if defined(BUILD_SDL2) && !defined(SDL_WINDOWS)
 	bprintf = AppDebugPrintf;
+#endif	
 	BurnLibInit();
 
 	// Search for a game now, for use in the menu and loading a games

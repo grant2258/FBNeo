@@ -20,10 +20,10 @@ TCHAR szAppDatListsPath[MAX_PATH] = _T("support\\lists\\dat\\");
 TCHAR szAppIpsPath[MAX_PATH] = _T("support\\ips\\");
 TCHAR szAppIconsPath[MAX_PATH] = _T("support\\icons\\");
 TCHAR szAppArchivesPath[MAX_PATH] = _T("support\\archives\\");
-TCHAR szAppHiscorePath[MAX_PATH] = _T("/config/hiscore/");
+TCHAR szAppHiscorePath[MAX_PATH] = _T("support\\hiscore\\");
 TCHAR szAppSamplesPath[MAX_PATH] = _T("support\\samples\\");
-TCHAR szAppHDDPath[MAX_PATH] = _T("support/hdd/");
+TCHAR szAppHDDPath[MAX_PATH] = _T("support\\hdd\\");
 TCHAR szAppBlendPath[MAX_PATH] = _T("support\\blend\\");
-TCHAR szAppEEPROMPath[MAX_PATH] = _T("config/games/");
+TCHAR szAppEEPROMPath[MAX_PATH] = _T("support\\games\\");
 
 TCHAR szCheckIconsPath[MAX_PATH];

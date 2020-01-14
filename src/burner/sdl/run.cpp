@@ -40,7 +40,7 @@ int StatedAuto(int bSave)
 	static TCHAR szName[MAX_PATH] = _T("");
 	int nRet;
 
-#ifdef BUILD_SDL2
+#if defined(BUILD_SDL2) && !defined(SDL_WINDOWS)	
 	if (szSDLSavePath == NULL)
 	{
 		szSDLSavePath = SDL_GetPrefPath("fbneo", "states");
