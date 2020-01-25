@@ -265,7 +265,7 @@ int main(int argc, char* argv[])
 	snprintf(videofiltering, 3, "0");
 
 	printf("FBNeo v%s\n", szAppBurnVer);
-	
+
 	// create a default ini if one is not valid
 	fail = ConfigAppLoad();
 	if (fail)
@@ -274,7 +274,7 @@ int main(int argc, char* argv[])
 		{
 			ConfigAppSave();
 		}
-	}				
+	}
 
 	for (int i = 1; i < argc; i++)
 	{
@@ -370,7 +370,7 @@ int main(int argc, char* argv[])
 	ComputeGammaLUT();
 #if defined(BUILD_SDL2) && !defined(SDL_WINDOWS)
 	bprintf = AppDebugPrintf;
-#endif	
+#endif
 	BurnLibInit();
 
 	// Search for a game now, for use in the menu and loading a games

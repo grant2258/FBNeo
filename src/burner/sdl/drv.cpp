@@ -137,14 +137,14 @@ int DrvInit(int nDrvNum, bool bRestore)
 
 int DrvInitCallback()
 {
-	return DrvInit(nBurnDrvSelect[0], false);
+	return DrvInit(nBurnDrvActive, false);
 }
 
 int DrvExit()
 {
 	if (bDrvOkay)
 	{
-		if (nBurnDrvSelect[0] < nBurnDrvCount)
+		if (nBurnDrvActive < nBurnDrvCount)
 		{
 			if (bSaveRAM)
 			{
@@ -152,7 +152,6 @@ int DrvExit()
 			}
 
 			ConfigGameSave(bSaveInputs);
-
 			GameInpExit();                                         // Exit game input
 			BurnDrvExit();                                         // Exit the driver
 		}
@@ -161,7 +160,7 @@ int DrvExit()
 	BurnExtLoadRom = NULL;
 
 	bDrvOkay = 0;                   // Stop using the BurnDrv functions
-	nBurnDrvSelect[0] = ~0U;                 // no driver selected
+//	nBurnDrvActive = ~0U;                 // no driver selected
 
 	return 0;
 }

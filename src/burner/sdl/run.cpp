@@ -252,7 +252,7 @@ int RunIdle()
 	nTime = GetTime() - nNormalLast;
 	nCount = (nTime * nAppVirtualFps - nNormalFrac) / 100000;
 	if (nCount <= 0) {						// No need to do anything for a bit
-		delay_ticks(2);
+		//delay_ticks(2);
 		return 0;
 	}
 

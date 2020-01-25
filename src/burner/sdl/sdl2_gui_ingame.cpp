@@ -78,6 +78,11 @@ int DIPMenuSelected()
   return 0;
 }
 
+int BackToGameSelected()
+{
+	return 1;
+}
+
 #define MAINMENU_COUNT 6
 
 struct MenuItem mainMenu[MAINMENU_COUNT] =
@@ -87,7 +92,7 @@ struct MenuItem mainMenu[MAINMENU_COUNT] =
  {"Save State\0", QuickSave, NULL},
  {"Load State\0", QuickLoad, NULL},
  {"Save Screenshot\0", NULL, NULL},
- {"Reset!\0", NULL, NULL},
+ {"Back to Game!\0", BackToGameSelected, NULL},
 };
 
 #define DIPMENU_COUNT 1

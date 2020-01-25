@@ -86,7 +86,7 @@ static int SDLSoundCheck()
 	}
 
 	if (nSDLFillSeg == nPlaySeg) {
-			delay_ticks(1);
+		//	delay_ticks(1);
 			return 0;
 		}
 
