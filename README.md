@@ -1,6 +1,8 @@
 # FinalBurn Neo
 Official Forum: https://neo-source.com
 
+Discord: https://discord.gg/8EGVd9v
+
 This is the official repository of FinalBurn Neo, an Emulator for Arcade Games & Select Consoles. It is based on the emulators FinalBurn and old versions of [MAME](https://www.mamedev.org)
 
 Use of this program and its source code is subject to the license conditions provided in the [license.txt](/src/license.txt) file in the src folder.
