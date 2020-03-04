@@ -78,8 +78,6 @@ static INT32 Gclip_max_y;
 static INT32 interrupt_ultrax = 0;
 static INT32 watchdog_disable = 0;
 static INT32 is_gdfs = 0;
-static INT32 vbl_kludge = 0; // late vbl, for flicker issues in vertical games
-static INT32 vbl_invert = 0; // invert vblank register, for drifto94
 
 static INT32 dsp_enable = 0;
 
@@ -96,12 +94,14 @@ static UINT8 DrvJoy6[8];
 static UINT8 DrvJoy7[8];
 static UINT8 DrvJoy8[8];
 static UINT8 DrvInputs[8];
-static UINT8 DrvDips[2];
+static UINT8 DrvDips[3];
 static UINT8 DrvReset;
 
 static INT32 line_cycles_total = 0;
 static INT32 line_cycles = 0;
+static INT32 draw_next_line = 0;
 
+static INT32 use_hblank = 0;
 static INT32 pastelis = 0;
 static INT32 sxyreact_kludge = 0;
 static INT16 SxyGun = 0;
@@ -132,6 +132,7 @@ static struct BurnInputInfo DrvInputList[] = {
 	{"Tilt",		BIT_DIGITAL,	DrvJoy3 + 3,	"tilt"		},
 	{"Dip A",		BIT_DIPSWITCH,	DrvDips + 0,	"dip"		},
 	{"Dip B",		BIT_DIPSWITCH,	DrvDips + 1,	"dip"		},
+	{"Dip C",		BIT_DIPSWITCH,	DrvDips + 2,	"dip"		},
 };
 
 STDINPUTINFO(Drv)
@@ -1067,6 +1068,7 @@ static struct BurnDIPInfo Drifto94DIPList[]=
 {
 	{0x15, 0xff, 0xff, 0xff, NULL			},
 	{0x16, 0xff, 0xff, 0xff, NULL			},
+	{0x17, 0xff, 0xff, 0x00, NULL			},
 
 	{0   , 0xfe, 0   ,    2, "Flip Screen"		},
 	{0x15, 0x01, 0x01, 0x01, "Off"			},
@@ -1113,6 +1115,10 @@ static struct BurnDIPInfo Drifto94DIPList[]=
 	{0   , 0xfe, 0   ,    2, "Save Best Time"	},
 	{0x16, 0x01, 0x40, 0x00, "No"			},
 	{0x16, 0x01, 0x40, 0x40, "Yes"			},
+
+	{0   , 0xfe, 0   ,    2, "Refresh Rate"		},
+	{0x17, 0x01, 0x01, 0x01, "60.18"			},
+	{0x17, 0x01, 0x01, 0x00, "60.00"			},
 };
 
 STDDIPINFO(Drifto94)
@@ -2156,6 +2162,7 @@ static void common_main_write_byte(UINT32 address, UINT8 data)
 	}
 
 	if ((address & 0xffff80) == 0x1c0000) {
+		draw_next_line = 1;
 		DrvScrollRAM[(address & 0x7f)] = data;
 		return;
 	}
@@ -2214,6 +2221,7 @@ static void common_main_write_word(UINT32 address, UINT16 data)
 	}
 
 	if ((address & 0xffff80) == 0x1c0000) {
+		draw_next_line = 1;
 		UINT16 *p = (UINT16*)(DrvScrollRAM + (address & 0x7f));
 		*p = data;
 		return;
@@ -2287,7 +2295,7 @@ static UINT16 common_main_read_word(UINT32 address)
 	switch (address & ~1)
 	{
 		case 0x1c0000:
-			if (pastelis) { // pastel island checks hblank
+			if (use_hblank) { // pastel island checks hblank
 				INT32 status = 0;
 				INT32 hblank_cycs = line_cycles_total * 95 / 100;
 				if ((v60TotalCycles() - line_cycles) > hblank_cycs) {
@@ -2296,11 +2304,7 @@ static UINT16 common_main_read_word(UINT32 address)
 				if (vblank) status |= 0x3000;
 				return status;
 			}
-			if (vbl_invert) {
-				return (vblank) ? 0 : 0x3000;
-			} else {
-				return (vblank) ? 0x3000 : 0;
-			}
+			return (vblank) ? 0x3000 : 0;
 
 		case 0x1c0002:
 			return 0;
@@ -2964,6 +2968,8 @@ static INT32 DrvDoReset(INT32 full_reset)
 
 	watchdog = 0;
 
+	draw_next_line = -1;
+
 	return 0;
 }
 
@@ -3186,7 +3192,7 @@ static INT32 DrvGetRoms(bool bLoad)
 	return 0;
 }
 
-static INT32 DrvCommonInit(void (*pV60Callback)(), void (*pRomLoadCallback)(), INT32 compute, INT32 s0, INT32 s1, INT32 s2, INT32 s3, double volume, INT32 funky_vbl)
+static INT32 DrvCommonInit(void (*pV60Callback)(), void (*pRomLoadCallback)(), INT32 compute, INT32 s0, INT32 s1, INT32 s2, INT32 s3, double volume)
 {
 	DrvGetRoms(false);
 
@@ -3220,8 +3226,6 @@ static INT32 DrvCommonInit(void (*pV60Callback)(), void (*pRomLoadCallback)(), I
 
 	GenericTilesInit();
 
-	vbl_kludge = funky_vbl;
-
 	DrvDoReset(1);
 
 	return 0;
@@ -3247,10 +3251,9 @@ static INT32 DrvExit()
 	watchdog_disable = 0;
 	is_gdfs = 0;
 	dsp_enable = 0;
-	vbl_kludge = 0;
-	vbl_invert = 0;
 	sxyreact_kludge = 0;
 	pastelis = 0;
+	use_hblank = 0;
 
 	return 0;
 }
@@ -3325,7 +3328,7 @@ static void drawgfx(INT32 gfx, UINT32 code, UINT32 color, INT32 flipx, INT32 fli
 			{                                                                   \
 				pen = (*source++) & penmask;                                     \
 												\
-				if ( pen && sx >= Gclip_min_y && sx <= Gclip_max_x )  \
+				if ( pen && sx >= Gclip_min_x && sx <= Gclip_max_x )  \
 					SETPIXELCOLOR                                            \
 			}                                                                   \
 		}                                                                       \
@@ -3771,8 +3774,13 @@ static void gdfs_draw_layer()
 	}
 }
 
-static INT32 DrvDraw()
+static INT32 lastline = 0;
+
+static INT32 DrvDrawBegin()
 {
+	lastline = 0;
+
+	if (!pBurnDraw) return 0;
 	if (DrvRecalc) {
 		DrvPaletteInit();
 		DrvRecalc = 0;
@@ -3780,6 +3788,20 @@ static INT32 DrvDraw()
 
 	BurnTransferClear();
 
+	return 0;
+}
+
+static INT32 DrvDrawScanline(INT32 drawto)
+{
+	if (drawto > nScreenHeight) drawto = nScreenHeight;
+	if (!pBurnDraw || drawto < 1 || drawto == lastline) return 0;
+	Gclip_min_x = 0;
+	Gclip_max_x = nScreenWidth - 1;
+	Gclip_min_y = lastline;
+	Gclip_max_y = drawto - 1;
+	lastline = drawto;
+
+	//bprintf(0, _T("%04d: draw scanline %d\n"), nCurrentFrame, drawto-1);
 	if (enable_video)
 	{
 		UINT16 *scroll = (UINT16*)DrvScrollRAM;
@@ -3796,6 +3818,7 @@ static INT32 DrvDraw()
 
 		shadow_pen_mask = (1 << shadow_pen_shift) - 1;
 
+#if 0
 		// used by twineag2 and ultrax
 		Gclip_min_x = ((nScreenWidth / 2) + scroll[0x62/2]) * 2 - scroll[0x64/2] * 2 + 2;
 		Gclip_max_x = ((nScreenWidth / 2) + scroll[0x62/2]) * 2 - scroll[0x62/2] * 2 + 1;
@@ -3809,17 +3832,19 @@ static INT32 DrvDraw()
 
 		if (Gclip_min_x > Gclip_max_x) Gclip_min_x = Gclip_max_x;
 		if (Gclip_min_y > Gclip_max_y) Gclip_min_y = Gclip_max_y;
-
-#if 1
-		// iq_132
-		Gclip_min_x = 0;
-		Gclip_max_x = nScreenWidth - 1;
-		Gclip_min_y = 0;
-		Gclip_max_y = nScreenHeight - 1;
 #endif
 		draw_layer(0);
 		draw_sprites();
 	}
+
+	return 0;
+}
+
+static INT32 DrvDrawEnd()
+{
+	if (!pBurnDraw) return 0;
+
+	DrvDrawScanline(nScreenHeight);
 
 	if (is_gdfs)
 	{
@@ -3828,6 +3853,15 @@ static INT32 DrvDraw()
 	}
 
 	BurnTransferCopy(DrvPalette);
+
+	return 0;
+}
+
+static INT32 DrvDraw()
+{
+	DrvDrawBegin();
+	DrvDrawScanline(nScreenHeight);
+	DrvDrawEnd();
 
 	return 0;
 }
@@ -3870,7 +3904,7 @@ static INT32 DrvFrame()
 
 	}
 
-	INT32 nInterleave = 256;
+	INT32 nInterleave = 262;
 #ifdef SSV_UPD_SPEEDHACK
 	INT32 nCyclesTotal[2] = { (16000000 * 100) / 6018, (1000000 * 100) / 6018 };
 #else
@@ -3883,15 +3917,21 @@ static INT32 DrvFrame()
 	vblank = 0;
 
 	line_cycles_total = nCyclesTotal[0] / nInterleave;
+	DrvDrawBegin();
 
 	for (INT32 i = 0; i < nInterleave; i++)
 	{
 		line_cycles = v60TotalCycles();
-
 		CPU_RUN(0, v60);
 
-		if (dsp_enable)
+		if (draw_next_line != -1) {
+			DrvDrawScanline(i - 1);
+			draw_next_line = -1;
+		}
+
+		if (dsp_enable) {
 			nCyclesDone[1] += upd96050Run(nCyclesTotal[1] / nInterleave);
+		}
 
 		if (i == 0 && interrupt_ultrax) {
 			requested_int |= 1 << 1;
@@ -3908,7 +3948,8 @@ static INT32 DrvFrame()
 			update_irq_state();
 		}
 
-		if (i == ((vbl_kludge) ? (nInterleave-1) : 240)) {
+		if (i == 240) {
+			DrvDrawEnd();
 			vblank = 1;
 			requested_int |= 1 << 3;
 			update_irq_state();
@@ -3919,10 +3960,6 @@ static INT32 DrvFrame()
 
 	if (pBurnSoundOut) {
 		ES5506Update(pBurnSoundOut, nBurnSoundLen);
-	}
-
-	if (pBurnDraw) {
-		BurnDrvRedraw();
 	}
 
 	return 0;
@@ -4028,7 +4065,7 @@ static void VasaraV60Map()
 
 static INT32 VasaraInit()
 {
-	return DrvCommonInit(VasaraV60Map, NULL, 0, 0, 1, -1, -1, 0.80, 1);
+	return DrvCommonInit(VasaraV60Map, NULL, 0, 0, 1, -1, -1, 0.80);
 }
 
 struct BurnDriver BurnDrvVasara = {
@@ -4147,12 +4184,12 @@ static void SurvartsV60Map()
 
 static INT32 SurvartsInit()
 {
-	return DrvCommonInit(SurvartsV60Map, NULL, 0, -1, -1, 2, -1, 0.30, 0);
+	return DrvCommonInit(SurvartsV60Map, NULL, 0, -1, -1, 2, -1, 0.30);
 }
 
 static INT32 DynagearInit()
 {
-	return DrvCommonInit(SurvartsV60Map, NULL, 0, -1, -1, 2, -1, 0.20, 1);
+	return DrvCommonInit(SurvartsV60Map, NULL, 0, -1, -1, 2, -1, 0.20);
 }
 
 struct BurnDriver BurnDrvSurvarts = {
@@ -4307,7 +4344,7 @@ static INT32 KeithlcyInit()
 {
 	watchdog_disable = 1;
 
-	return DrvCommonInit(KeithlcyV60Map, NULL, 0, 0, -1, -1, -1, 0.80, 0);
+	return DrvCommonInit(KeithlcyV60Map, NULL, 0, 0, -1, -1, -1, 0.80);
 }
 
 struct BurnDriver BurnDrvKeithlcy = {
@@ -4351,8 +4388,9 @@ static INT32 PastelisInit()
 {
 	watchdog_disable = 1;
 	pastelis = 1;
+	use_hblank = 1;
 
-	return DrvCommonInit(KeithlcyV60Map, NULL, 0, 0, -1, -1, -1, 0.80, 0);
+	return DrvCommonInit(KeithlcyV60Map, NULL, 0, 0, -1, -1, -1, 0.80);
 }
 
 struct BurnDriver BurnDrvPastelis = {
@@ -4411,7 +4449,7 @@ static INT32 Twineag2Init()
 	interrupt_ultrax = 1;
 	watchdog_disable = 1;
 
-	return DrvCommonInit(Twineag2V60Map, NULL, 0, 0, 1, 0, 1, 0.80, 1);
+	return DrvCommonInit(Twineag2V60Map, NULL, 0, 0, 1, 0, 1, 0.80);
 }
 
 struct BurnDriver BurnDrvTwineag2 = {
@@ -4478,9 +4516,13 @@ static void Drifto94V60Map()
 static INT32 Drifto94Init()
 {
 	watchdog_disable = 1;
-	vbl_invert = 1;
+	use_hblank = 1;
 
-	return DrvCommonInit(Drifto94V60Map, NULL, 0, 0, 1, -1, -1, 0.80, 0);
+	if (DrvDips[2] & 1) {
+		BurnSetRefreshRate(60.186);
+	}
+
+	return DrvCommonInit(Drifto94V60Map, NULL, 0, 0, 1, -1, -1, 0.80);
 }
 
 struct BurnDriver BurnDrvDrifto94 = {
@@ -4528,7 +4570,7 @@ static void MeosismV60Map()
 
 static INT32 MeosismInit()
 {
-	return DrvCommonInit(MeosismV60Map, NULL, 0, -1, -1, 2, -1, 0.80, 0);
+	return DrvCommonInit(MeosismV60Map, NULL, 0, -1, -1, 2, -1, 0.80);
 }
 
 struct BurnDriver BurnDrvMeosism = {
@@ -4576,7 +4618,7 @@ static void CairbladV60Map()
 
 static INT32 CairbladInit()
 {
-	return DrvCommonInit(CairbladV60Map, NULL, 1, 0, -1, -1, -1, 0.80, 1);
+	return DrvCommonInit(CairbladV60Map, NULL, 1, 0, -1, -1, -1, 0.80);
 }
 
 struct BurnDriver BurnDrvCairblad = {
@@ -4630,7 +4672,7 @@ static INT32 UltraxInit()
 {
 	interrupt_ultrax = 1;
 
-	return DrvCommonInit(UltraxV60Map, NULL, 0, 0, 1, 0, 1, 0.80, 1);
+	return DrvCommonInit(UltraxV60Map, NULL, 0, 0, 1, 0, 1, 0.80);
 }
 
 struct BurnDriver BurnDrvUltrax = {
@@ -4723,9 +4765,8 @@ static void StmbladeV60Map()
 static INT32 StmbladeInit()
 {
 	watchdog_disable = 1;
-	vbl_invert = 1;
 
-	return DrvCommonInit(StmbladeV60Map, NULL, 0, 0, -1, -1, -1, 0.80, 0);
+	return DrvCommonInit(StmbladeV60Map, NULL, 0, 0, -1, -1, -1, 0.80);
 }
 
 struct BurnDriver BurnDrvStmblade = {
@@ -4799,7 +4840,7 @@ STD_ROM_FN(ryorioh)
 
 static INT32 RyoriohInit()
 {
-	return DrvCommonInit(VasaraV60Map, NULL, 0, 0, -1, -1, -1, 0.80, 0);
+	return DrvCommonInit(VasaraV60Map, NULL, 0, 0, -1, -1, -1, 0.80);
 }
 
 struct BurnDriver BurnDrvRyorioh = {
@@ -4851,7 +4892,7 @@ static INT32 MsliderInit()
 {
 	watchdog_disable = 1;
 
-	return DrvCommonInit(MsliderV60Map, NULL, 0, 0, -1, -1, -1, 2.80, 1);
+	return DrvCommonInit(MsliderV60Map, NULL, 0, 0, -1, -1, -1, 2.80);
 }
 
 struct BurnDriver BurnDrvMslider = {
@@ -4939,7 +4980,7 @@ static INT32 GdfsInit()
 	watchdog_disable = 1;
 	BurnGunInit(2, false);
 
-	return DrvCommonInit(GdfsV60Map, GdfsRomLoadCallback, 0, 0, 0, 0, 0, 0.80, 1);
+	return DrvCommonInit(GdfsV60Map, GdfsRomLoadCallback, 0, 0, 0, 0, 0, 0.80);
 }
 
 struct BurnDriver BurnDrvGdfs = {
@@ -4999,7 +5040,7 @@ static INT32 Janjans1Init()
 {
 	watchdog_disable = 1;
 
-	return DrvCommonInit(Janjans1V60Map, NULL, 0, 0, 1, 0, 1, 0.80, 0);
+	return DrvCommonInit(Janjans1V60Map, NULL, 0, 0, 1, 0, 1, 0.80);
 }
 
 struct BurnDriver BurnDrvJanjans1 = {
@@ -5039,7 +5080,7 @@ STD_ROM_FN(janjans2)
 
 static INT32 Janjans2Init()
 {
-	return DrvCommonInit(Janjans1V60Map, NULL, 0, 0, 1, 0, 1, 0.80, 0);
+	return DrvCommonInit(Janjans1V60Map, NULL, 0, 0, 1, 0, 1, 0.80);
 }
 
 struct BurnDriver BurnDrvJanjans2 = {
@@ -5092,7 +5133,7 @@ static void Koikois2V60Map()
 
 static INT32 Koikois2Init()
 {
-	return DrvCommonInit(Koikois2V60Map, NULL, 0, 0, 1, 0, 1, 1.40, 0);
+	return DrvCommonInit(Koikois2V60Map, NULL, 0, 0, 1, 0, 1, 1.40);
 }
 
 struct BurnDriver BurnDrvKoikois2 = {
@@ -5149,7 +5190,7 @@ static void Srpm4RomLoadCallback()
 
 static INT32 Srmp4Init()
 {
-	return DrvCommonInit(Srmp4V60Map, Srpm4RomLoadCallback, 0, 0, 1, 0, 1, 0.80, 0);
+	return DrvCommonInit(Srmp4V60Map, Srpm4RomLoadCallback, 0, 0, 1, 0, 1, 0.80);
 }
 
 struct BurnDriver BurnDrvSrmp4 = {
@@ -5223,7 +5264,7 @@ static INT32 HypreactInit()
 {
 	watchdog_disable = 1;
 
-	return DrvCommonInit(Srmp4V60Map, NULL, 0, 0, 1, 0, 1, 0.10, 0);
+	return DrvCommonInit(Srmp4V60Map, NULL, 0, 0, 1, 0, 1, 0.10);
 }
 
 struct BurnDriver BurnDrvHypreact = {
@@ -5283,7 +5324,7 @@ static INT32 Hypreac2Init()
 {
 	watchdog_disable = 1;
 
-	return DrvCommonInit(Hypreac2V60Map, NULL, 1, 0, 1, 2, -1, 0.10, 0);
+	return DrvCommonInit(Hypreac2V60Map, NULL, 1, 0, 1, 2, -1, 0.10);
 }
 
 struct BurnDriver BurnDrvHypreac2 = {
@@ -5359,7 +5400,7 @@ static void Srmp7ROMCallback()
 
 static INT32 Srmp7Init()
 {
-	return DrvCommonInit(Srmp7V60Map, Srmp7ROMCallback, 0, 0, 1, 2, 3, 0.80, 0);
+	return DrvCommonInit(Srmp7V60Map, Srmp7ROMCallback, 0, 0, 1, 2, 3, 0.80);
 }
 
 struct BurnDriver BurnDrvSrmp7 = {
@@ -5426,7 +5467,7 @@ static INT32 SxyreactInit()
 {
 	sxyreact_kludge = 1;
 
-	return DrvCommonInit(SxyreactV60Map, SexyreactRomLoadCallback, 1, 0, 1, 2, -1, 0.10, 0);
+	return DrvCommonInit(SxyreactV60Map, SexyreactRomLoadCallback, 1, 0, 1, 2, -1, 0.10);
 }
 
 struct BurnDriver BurnDrvSxyreact = {
@@ -5464,7 +5505,7 @@ static INT32 Sxyreac2Init()
 {
 	sxyreact_kludge = 1;
 
-	return DrvCommonInit(SxyreactV60Map, SexyreactRomLoadCallback, 1, 0, 1, 2, -1, 0.10, 0);
+	return DrvCommonInit(SxyreactV60Map, SexyreactRomLoadCallback, 1, 0, 1, 2, -1, 0.10);
 }
 
 struct BurnDriver BurnDrvSxyreac2 = {
@@ -5552,7 +5593,7 @@ static void EaglshotV60Map()
 
 static INT32 EaglshotInit()
 {
-	return DrvCommonInit(EaglshotV60Map, NULL, 0, 0, 0, 0, 0, 0.80, 0);
+	return DrvCommonInit(EaglshotV60Map, NULL, 0, 0, 0, 0, 0, 0.80);
 }
 
 struct BurnDriver BurnDrvEaglshot = {
