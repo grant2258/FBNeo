@@ -230,7 +230,7 @@ static struct BurnInputInfo RobotronInputList[] = {
 	{"Left Up",				BIT_DIGITAL,	DrvJoy1 + 0,	"p1 up"		},
 	{"Left Down",				BIT_DIGITAL,	DrvJoy1 + 1,	"p1 down"	},
 	{"Left Left",				BIT_DIGITAL,	DrvJoy1 + 2,	"p1 left"	},
-	{"Left Right",				BIT_DIGITAL,	DrvJoy1 + 3,	"p1 right 2"	},
+	{"Left Right",				BIT_DIGITAL,	DrvJoy1 + 3,	"p1 right"	},
 	{"Right Up",				BIT_DIGITAL,	DrvJoy1 + 6,	"p1 up 2"	},
 	{"Right Down",				BIT_DIGITAL,	DrvJoy1 + 7,	"p1 down 2"	},
 	{"Right Left",				BIT_DIGITAL,	DrvJoy2 + 0,	"p1 left 2"	},
