@@ -225,25 +225,25 @@ static struct BurnInputInfo StargateInputList[] = {
 STDINPUTINFO(Stargate)
 
 static struct BurnInputInfo RobotronInputList[] = {
-	{"P1 Coin",					BIT_DIGITAL,	DrvJoy3 + 4,	"p1 coin"	},
+	{"P1 Coin",				BIT_DIGITAL,	DrvJoy3 + 4,	"p1 coin"	},
 	{"P1 Start",				BIT_DIGITAL,	DrvJoy1 + 4,	"p1 start"	},
-	{"Move Up",					BIT_DIGITAL,	DrvJoy1 + 0,	"p1 up"		},
-	{"Move Down",				BIT_DIGITAL,	DrvJoy1 + 1,	"p1 down"	},
-	{"Move Left",				BIT_DIGITAL,	DrvJoy1 + 2,	"p1 left"	},
-	{"Move Right",				BIT_DIGITAL,	DrvJoy1 + 3,	"p1 right"	},
-	{"Fire Up",					BIT_DIGITAL,	DrvJoy1 + 6,	"p2 up"		},
-	{"Fire Down",				BIT_DIGITAL,	DrvJoy1 + 7,	"p2 down"	},
-	{"Fire Left",				BIT_DIGITAL,	DrvJoy2 + 0,	"p2 left"	},
-	{"Fire Right",				BIT_DIGITAL,	DrvJoy2 + 1,	"p2 right"	},
+	{"Left Up",				BIT_DIGITAL,	DrvJoy1 + 0,	"p1 up"		},
+	{"Left Down",				BIT_DIGITAL,	DrvJoy1 + 1,	"p1 down"	},
+	{"Left Left",				BIT_DIGITAL,	DrvJoy1 + 2,	"p1 left"	},
+	{"Left Right",				BIT_DIGITAL,	DrvJoy1 + 3,	"p1 right 2"	},
+	{"Right Up",				BIT_DIGITAL,	DrvJoy1 + 6,	"p1 up 2"	},
+	{"Right Down",				BIT_DIGITAL,	DrvJoy1 + 7,	"p1 down 2"	},
+	{"Right Left",				BIT_DIGITAL,	DrvJoy2 + 0,	"p1 left 2"	},
+	{"Right Right",				BIT_DIGITAL,	DrvJoy2 + 1,	"p1 right 2"	},
 
-	{"P2 Coin",					BIT_DIGITAL,	DrvJoy3 + 2,	"p2 coin"	},
+	{"P2 Coin",				BIT_DIGITAL,	DrvJoy3 + 2,	"p2 coin"	},
 	{"P2 Start",				BIT_DIGITAL,	DrvJoy1 + 5,	"p2 start"	},
 
-	{"Reset",					BIT_DIGITAL,	&DrvReset,		"reset"		},
-	{"Auto Up / Manual Down",	BIT_DIGITAL,	DrvJoy3 + 0,	"service"	},
-	{"Advance",					BIT_DIGITAL,	DrvJoy3 + 1,	"service2"	},
-	{"High Score Reset",		BIT_DIGITAL,	DrvJoy3 + 3,	"service3"		},
-	{"Tilt",					BIT_DIGITAL,	DrvJoy3 + 6,	"tilt"		},
+	{"Reset",				BIT_DIGITAL,	&DrvReset,	"reset"		},
+	{"Auto Up / Manual Down",		BIT_DIGITAL,	DrvJoy3 + 0,	"service"	},
+	{"Advance",				BIT_DIGITAL,	DrvJoy3 + 1,	"service2"	},
+	{"High Score Reset",			BIT_DIGITAL,	DrvJoy3 + 3,	"service3"	},
+	{"Tilt",				BIT_DIGITAL,	DrvJoy3 + 6,	"tilt"		},
 };
 
 STDINPUTINFO(Robotron)
