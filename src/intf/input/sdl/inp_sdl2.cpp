@@ -13,7 +13,7 @@ static SDL_Joystick* JoyList[MAX_JOYSTICKS];
 static int* JoyPrevAxes = NULL;
 static int nJoystickCount = 0;						// Number of joysticks connected to this machine
 int buttons [4][8]= { {-1,-1,-1,-1,-1,-1,-1,-1}, {-1,-1,-1,-1,-1,-1,-1,-1}, {-1,-1,-1,-1,-1,-1,-1,-1}, {-1,-1,-1,-1,-1,-1,-1,-1} }; // 4 joysticks buttons 0 -5 and start / select
-
+int axis [4][8] = { {-1,-1,-1,-1,-1,-1,-1,-1}, {-1,-1,-1,-1,-1,-1,-1,-1}, {-1,-1,-1,-1,-1,-1,-1,-1}, {-1,-1,-1,-1,-1,-1,-1,-1} };
 void setup_kemaps(void)
 {
 	SDLtoFBK[SDL_SCANCODE_UNKNOWN] = 0;
@@ -270,9 +270,10 @@ void setup_kemaps(void)
 // Sets up one Joystick (for example the range of the joystick's axes)
 static int SDLinpJoystickInit(int i)
 {
+   SDL_Init(SDL_INIT_GAMECONTROLLER);
    SDL_GameController *temp;
-	SDL_GameControllerButtonBind bind;
- 
+   SDL_GameControllerButtonBind bind;
+
    JoyList[i] = SDL_JoystickOpen(i);
 
 // need this for any mapps that need done might just read a local file and do a readme on how to add your controller this will do for now
@@ -292,36 +293,50 @@ static int SDLinpJoystickInit(int i)
 
    temp = SDL_GameControllerOpen(i);
    mapping = SDL_GameControllerMapping(temp);
-   printf("mapping %s\n",mapping);   
-   bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_A );
-   
-   bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_A );
-   buttons[i][0] = bind.value.button;
 
-   bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_B);
-   buttons[i][1] = bind.value.button;
+   if (mapping)
+   {
+     printf("Sdl2 found mapping for controller%d \nguid:%s \nmapping:%s",i,guid_str, mapping);
 
-   bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_X );
-   buttons[i][2] = bind.value.button;
-   
-   bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_Y);
-   buttons[i][3] = bind.value.button;
+     bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_A );
+     buttons[i][0] = bind.value.button;
 
-   bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_LEFTSHOULDER  );
-   buttons[i][4] = bind.value.button;
+     bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_B);
+     buttons[i][1] = bind.value.button;
 
-   bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER );
-   buttons[i][5] = bind.value.button;
+     bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_X );
+     buttons[i][2] = bind.value.button;
 
-   bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_BACK   );
-   buttons[i][6] = bind.value.button;
+     bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_Y);
+     buttons[i][3] = bind.value.button;
 
-   bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_START  );
-   buttons[i][7] = bind.value.button;
+     bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_LEFTSHOULDER  );
+     buttons[i][4] = bind.value.button;
 
+     bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER );
+     buttons[i][5] = bind.value.button;
 
+     bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_BACK   );
+     buttons[i][6] = bind.value.button;
 
-	return 0;
+     bind = SDL_GameControllerGetBindForButton(temp, SDL_CONTROLLER_BUTTON_START  );
+     buttons[i][7] = bind.value.button;
+
+     bind = SDL_GameControllerGetBindForAxis(temp, SDL_CONTROLLER_AXIS_LEFTX   );
+     axis[i][0] = bind.value.axis;
+
+     bind = SDL_GameControllerGetBindForAxis(temp, SDL_CONTROLLER_AXIS_LEFTY   );
+     axis[i][1] = bind.value.axis;
+
+     bind = SDL_GameControllerGetBindForAxis(temp, SDL_CONTROLLER_AXIS_RIGHTX   );
+     axis[i][2] = bind.value.axis;
+
+     bind = SDL_GameControllerGetBindForAxis(temp, SDL_CONTROLLER_AXIS_RIGHTY   );
+     axis[i][3] = bind.value.axis;
+     }
+     else
+        printf("Sdl2 found mapping not found\n");
+     return 0;
 }
 
 // Set up the keyboard
@@ -463,7 +478,7 @@ int SDLinpJoyAxis(int i, int nAxis)
 		return 0;
 	}
 
-	return SDL_JoystickGetAxis(JoyList[i], nAxis) << 1;
+        return SDL_JoystickGetAxis(JoyList[i],axis[i][nAxis]) << 1;
 }
 
 // Read the keyboard
@@ -529,29 +544,31 @@ static int JoystickState(int i, int nSubCode)
 	if (nSubCode < 0x10) {										// Joystick directions
 		const int DEADZONE = 0x4000;
 
-		if (SDL_JoystickNumAxes(JoyList[i]) <= nSubCode) {
-			return 0;
-		}
+        //	if (SDL_JoystickNumAxes(JoyList[i]) <= nSubCode) {
+        //		return 0;
+        //	}
 
-		switch (nSubCode) {
-		case 0x00: return SDL_JoystickGetAxis(JoyList[i], 0) < -DEADZONE;		// Left
-		case 0x01: return SDL_JoystickGetAxis(JoyList[i], 0) > DEADZONE;		// Right
-		case 0x02: return SDL_JoystickGetAxis(JoyList[i], 1) < -DEADZONE;		// Up
-		case 0x03: return SDL_JoystickGetAxis(JoyList[i], 1) > DEADZONE;		// Down
-		case 0x04: return SDL_JoystickGetAxis(JoyList[i], 2) < -DEADZONE;
-		case 0x05: return SDL_JoystickGetAxis(JoyList[i], 2) > DEADZONE;
-		case 0x06: return SDL_JoystickGetAxis(JoyList[i], 3) < -DEADZONE;
-		case 0x07: return SDL_JoystickGetAxis(JoyList[i], 3) > DEADZONE;
-		case 0x08: return SDL_JoystickGetAxis(JoyList[i], 4) < -DEADZONE;
-		case 0x09: return SDL_JoystickGetAxis(JoyList[i], 4) > DEADZONE;
-		case 0x0A: return SDL_JoystickGetAxis(JoyList[i], 5) < -DEADZONE;
-		case 0x0B: return SDL_JoystickGetAxis(JoyList[i], 5) > DEADZONE;
-		case 0x0C: return SDL_JoystickGetAxis(JoyList[i], 6) < -DEADZONE;
-		case 0x0D: return SDL_JoystickGetAxis(JoyList[i], 6) > DEADZONE;
-		case 0x0E: return SDL_JoystickGetAxis(JoyList[i], 7) < -DEADZONE;
-		case 0x0F: return SDL_JoystickGetAxis(JoyList[i], 7) > DEADZONE;
-		}
-	}
+                switch (nSubCode) {
+                case 0x00: return SDL_JoystickGetAxis(JoyList[i], axis[i][0]) < -DEADZONE;		// L Left
+                case 0x01: return SDL_JoystickGetAxis(JoyList[i], axis[i][0]) > DEADZONE;		// L Right
+                case 0x02: return SDL_JoystickGetAxis(JoyList[i], axis[i][1]) < -DEADZONE;		// L Up
+                case 0x03: return SDL_JoystickGetAxis(JoyList[i], axis[i][1]) > DEADZONE;		// L Down
+                case 0x04: return SDL_JoystickGetAxis(JoyList[i], axis[i][2]) < -DEADZONE;                       // Z
+                case 0x05: return SDL_JoystickGetAxis(JoyList[i], axis[i][2]) > DEADZONE;                        // Z
+ //               case 0x06: return SDL_JoystickGetAxis(JoyList[i], axis[i][x]) < -DEADZONE;               // R Left
+ //               case 0x07: return SDL_JoystickGetAxis(JoyList[i], axis[i][x]) > DEADZONE;                // R Right
+ //               case 0x08: return SDL_JoystickGetAxis(JoyList[i], axis[i][x]) < -DEADZONE;               // R UP
+ //               case 0x09: return SDL_JoystickGetAxis(JoyList[i], axis[i][x]) > DEADZONE;                // R DOWN
+                case 0x0A: return SDL_JoystickGetAxis(JoyList[i], axis[i][3]) < -DEADZONE;
+                case 0x0B: return SDL_JoystickGetAxis(JoyList[i], axis[i][3]) > DEADZONE;
+ //               case 0x0C: return SDL_JoystickGetAxis(JoyList[i], axis[i][3]) < -DEADZONE;
+ //               case 0x0D: return SDL_JoystickGetAxis(JoyList[i], axis[i][3]) > DEADZONE;
+ //               case 0x0E: return SDL_JoystickGetAxis(JoyList[i], axis[i][3]) < -DEADZONE;
+ //               case 0x0F: return SDL_JoystickGetAxis(JoyList[i], axis[i][3]) > DEADZONE;
+                default: return 0;
+                }
+
+        }
 	if (nSubCode < 0x20) {										// POV hat controls
 		if (SDL_JoystickNumHats(JoyList[i]) <= ((nSubCode & 0x0F) >> 2)) {
 			return 0;
