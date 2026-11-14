@@ -5,7 +5,7 @@
 #include <sstream>
 #include <iostream>
 
-#include <GL/glew.h>
+#include <glad/glad.h>
 
 using namespace std;
 

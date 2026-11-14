@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <glad/glad.h>
 #include <QDebug>
 #include <QOpenGLContext>
 #include "oglviewport.h"
@@ -8,6 +8,13 @@ extern void OGLSetSwapBuffers(void (*f)(void*));
 extern void OGLSetMakeCurrent(void (*f)(void*));
 extern void OGLSetDoneCurrent(void (*f)(void*));
 extern void OGLResize(int w, int h);
+extern void OGLSetGetProcAddress(void *(*f)(const char*));
+
+static void *getProcAddress(const char *name)
+{
+    QOpenGLContext *ctx = QOpenGLContext::currentContext();
+    return ctx ? reinterpret_cast<void*>(ctx->getProcAddress(name)) : nullptr;
+}
 
 static void swapBuffers(void *ptr)
 {
@@ -31,14 +38,16 @@ OGLViewport::OGLViewport(QWidget *parent) :
     QGLWidget(parent)
 {
     QGLFormat format;
-    format.setVersion(3, 3);
+    format.setVersion(3, 1);
     format.setProfile(QGLFormat::CoreProfile);
+    format.setSwapInterval(0);
     setFormat(format);
 
     OGLSetContext(this);
     OGLSetSwapBuffers(::swapBuffers);
     OGLSetMakeCurrent(::makeCurrent);
     OGLSetDoneCurrent(::doneCurrent);
+    OGLSetGetProcAddress(::getProcAddress);
 }
 
 OGLViewport::~OGLViewport()
@@ -48,14 +57,19 @@ OGLViewport::~OGLViewport()
 
 void OGLViewport::initializeGL()
 {
+    doneCurrent();
 }
 
 void OGLViewport::paintGL()
 {
+    doneCurrent();
 }
 
 void OGLViewport::resizeGL(int w, int h)
 {
-    OGLResize(w, h);
+    if (context() && context()->isValid()) {
+        makeCurrent();
+        OGLResize(w, h);
+        doneCurrent();
+    }
 }
-

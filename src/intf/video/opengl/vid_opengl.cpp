@@ -1,5 +1,5 @@
 // OpenGL 3.3 Core Profile renderer
-#include <GL/glew.h>
+#include <glad/glad.h>
 #include <iostream>
 #include "burner.h"
 
@@ -15,7 +15,22 @@ static int videoHeight = 0;
 static unsigned char *videoMemory = nullptr;
 static bool rotateVideo = false;
 
-static bool isGlewInitialized = false;
+static bool isGladInitialized = false;
+static void *(*oglGetProcAddress)(const char*) = nullptr;
+
+void OGLSetGetProcAddress(void *(*f)(const char*))
+{
+    oglGetProcAddress = f;
+}
+
+static void ensureGladLoaded()
+{
+    if (!isGladInitialized && oglGetProcAddress) {
+        if (gladLoadGLLoader((GLADloadproc)oglGetProcAddress)) {
+            isGladInitialized = true;
+        }
+    }
+}
 static GLuint vao, texture;
 
 static void (*oglSwapBuffers)(void*) = nullptr;
@@ -26,7 +41,8 @@ static Shader *stockShader = nullptr;
 
 
 static const string defaultVertexShader = R"(
-        #version 330 core
+        #version 140
+        #extension GL_ARB_explicit_attrib_location : enable
 
         layout (location = 0) in vec2 position;
         layout (location = 1) in vec2 uvCoord;
@@ -40,7 +56,7 @@ static const string defaultVertexShader = R"(
 )";
 
 static const string defaultFragmentShader = R"(
-        #version 330 core
+        #version 140
 
         out vec4 color;
         in vec2 texCoord;
@@ -75,17 +91,58 @@ void OGLSetDoneCurrent(void (*f)(void*))
     oglDoneCurrent = f;
 }
 
+static int winWidth = 640;
+static int winHeight = 480;
+
+static void applyAspectViewport(int w, int h)
+{
+    if (w <= 0 || h <= 0)
+        return;
+
+    int targetW = w;
+    int targetH = h;
+    INT32 aspX = 4, aspY = 3;
+
+    if (bDrvOkay) {
+        BurnDrvGetAspect(&aspX, &aspY);
+        if (aspX <= 0 || aspY <= 0) {
+            aspX = rotateVideo ? 3 : 4;
+            aspY = rotateVideo ? 4 : 3;
+        }
+    } else if (rotateVideo) {
+        aspX = 3;
+        aspY = 4;
+    }
+
+    if (w * aspY > h * aspX) {
+        targetW = (h * aspX) / aspY;
+        targetH = h;
+    } else {
+        targetW = w;
+        targetH = (w * aspY) / aspX;
+    }
+
+    int vpX = (w - targetW) / 2;
+    int vpY = (h - targetH) / 2;
+    glViewport(vpX, vpY, targetW, targetH);
+}
+
 void OGLResize(int w, int h)
 {
-    glViewport(0, 0, w, h);
+    winWidth = w;
+    winHeight = h;
+    ensureGladLoaded();
+    if (!isGladInitialized)
+        return;
+    applyAspectViewport(w, h);
 }
 
 static INT32 oglInit()
 {
-    if (!isGlewInitialized) {
-        glewExperimental = true;
-        glewInit();
-    }
+    if (oglMakeCurrent)
+        oglMakeCurrent(oglContext);
+
+    ensureGladLoaded();
 
     stockShader = new Shader(defaultVertexShader, defaultFragmentShader, true);
 
@@ -107,14 +164,20 @@ static INT32 oglInit()
     videoMemory = new unsigned char[videoLenght];
     SetBurnHighCol(16);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glGenVertexArrays(1, &vao);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB565, videoWidth, videoHeight, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, nullptr);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
-    glGenVertexArrays(1, &vao);
-    glGenTextures(1, &texture);
+    if (oglDoneCurrent)
+        oglDoneCurrent(oglContext);
 
     return 0;
 }
@@ -151,18 +214,58 @@ static INT32 oglPaint(INT32 bValidate)
     if (oglMakeCurrent)
         oglMakeCurrent(oglContext);
 
+    glViewport(0, 0, winWidth, winHeight);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    applyAspectViewport(winWidth, winHeight);
+
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, videoWidth, videoHeight, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, videoMemory);
-    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, videoWidth, videoHeight, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, videoMemory);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    const GLfloat vtx[] = {
-        // vtx          uv
-        -1.0,  1.0,     0.0, 0.0,
-        -1.0, -1.0,     0.0, 1.0,
-         1.0,  1.0,     1.0, 0.0,
-         1.0, -1.0,     1.0, 1.0
-    };
+    GLfloat vtx[16];
+    if (rotateVideo) {
+        bool flipped = (BurnDrvGetFlags() & BDF_ORIENTATION_FLIPPED) != 0;
+        if (!flipped) {
+            // 90 degrees CCW (standard vertical arcade monitor)
+            GLfloat rot[] = {
+                -1.0f,  1.0f,   1.0f, 0.0f,
+                -1.0f, -1.0f,   0.0f, 0.0f,
+                 1.0f,  1.0f,   1.0f, 1.0f,
+                 1.0f, -1.0f,   0.0f, 1.0f
+            };
+            memcpy(vtx, rot, sizeof(vtx));
+        } else {
+            // 90 degrees CW (flipped vertical)
+            GLfloat rot[] = {
+                -1.0f,  1.0f,   0.0f, 1.0f,
+                -1.0f, -1.0f,   1.0f, 1.0f,
+                 1.0f,  1.0f,   0.0f, 0.0f,
+                 1.0f, -1.0f,   1.0f, 0.0f
+            };
+            memcpy(vtx, rot, sizeof(vtx));
+        }
+    } else {
+        bool flipped = (BurnDrvGetFlags() & BDF_ORIENTATION_FLIPPED) != 0;
+        if (!flipped) {
+            GLfloat norm[] = {
+                -1.0f,  1.0f,   0.0f, 0.0f,
+                -1.0f, -1.0f,   0.0f, 1.0f,
+                 1.0f,  1.0f,   1.0f, 0.0f,
+                 1.0f, -1.0f,   1.0f, 1.0f
+            };
+            memcpy(vtx, norm, sizeof(vtx));
+        } else {
+            // 180 degrees flip (flipped horizontal games like RoboCop)
+            GLfloat flip[] = {
+                -1.0f,  1.0f,   1.0f, 1.0f,
+                -1.0f, -1.0f,   1.0f, 0.0f,
+                 1.0f,  1.0f,   0.0f, 1.0f,
+                 1.0f, -1.0f,   0.0f, 0.0f
+            };
+            memcpy(vtx, flip, sizeof(vtx));
+        }
+    }
     glBindVertexArray(vao);
 
     GLuint vbo;
@@ -187,6 +290,10 @@ static INT32 oglPaint(INT32 bValidate)
 
     glDeleteBuffers(1, &vbo);
     glBindVertexArray(0);
+
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR)
+        std::cerr << "GL error in oglPaint: 0x" << std::hex << err << std::endl;
 
     if (oglSwapBuffers)
         oglSwapBuffers(oglContext);
