@@ -62,11 +62,27 @@ int DrvInit(int nDrvNum, bool bRestore)
 
     nMaxPlayers = BurnDrvGetMaxPlayers();
     GameInpInit();					// Init game input
-    if (ConfigGameLoad(true)) {
-        ConfigGameLoadHardwareDefaults();
-    }
-    InputMake(true);
+
     GameInpDefault();
+    if (ConfigGameLoad(true) == 0) {
+        bSaveInputs = true;
+        ConfigGameLoadHardwareDefaults();
+    } else {
+        int dipOffset = 0;
+        BurnDIPInfo bdi;
+        for (int i = 0; BurnDrvGetDIPInfo(&bdi, i) == 0; i++) {
+            if (bdi.nFlags == 0xF0) {
+                dipOffset = bdi.nInput;
+                break;
+            }
+        }
+        for (int i = 0; BurnDrvGetDIPInfo(&bdi, i) == 0; i++) {
+            if (bdi.nFlags == 0xFF) {
+                struct GameInp *pgi = GameInp + bdi.nInput + dipOffset;
+                pgi->Input.Constant.nConst = (pgi->Input.Constant.nConst & ~bdi.nMask) | (bdi.nSetting & bdi.nMask);
+            }
+        }
+    }
 
 	nStatus = DoLibInit();			// Init the Burn library's driver
 	if (nStatus) {
@@ -76,8 +92,7 @@ int DrvInit(int nDrvNum, bool bRestore)
 		return 1;
 	}
 
-
-
+	InputMake(true);
 	BurnExtLoadRom = DrvLoadRom;
 
 	bDrvOkay = 1;						// Okay to use all BurnDrv functions

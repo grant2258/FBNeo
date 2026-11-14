@@ -3,7 +3,7 @@
  #define PRINT_DEBUG_INFO
 #endif
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(BUILD_QT)
 #include <vector>
 #endif
 
@@ -59,7 +59,7 @@ INT32 InputFind(const INT32 nFlags);
 INT32 InputGetControlName(INT32 nCode, TCHAR* pszDeviceName, TCHAR* pszControlName);
 InterfaceInfo* InputGetInfo();
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(BUILD_QT)
 std::vector<const InputInOut *> InputGetInterfaces();  // this & include @ top is breaking the build..
 #endif
 

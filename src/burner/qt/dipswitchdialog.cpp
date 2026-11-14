@@ -27,6 +27,9 @@ int DipswitchDialog::exec()
     getDipOffset();
     makeList();
     int ret = QDialog::exec();
+    if (ret == QDialog::Accepted) {
+        bSaveInputs = true;
+    }
     return ret;
 }
 

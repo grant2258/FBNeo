@@ -19,14 +19,23 @@ bool EmuWorker::init()
     if (bDrvOkay)
         DrvExit();
 
-    // we need to initialize sound first
-    AudSoundInit();
+      AudSoundInit();
     AudSetCallback(RunGetNextSound);
     bAudOkay = 1;
 
     DrvInit(m_game, false);
     if (!bDrvOkay)
         return false;
+
+    // If the driver runs at a non-60Hz rate (e.g. Toaplan 54.87Hz or DEC0 57.44Hz),
+    // re-initialize audio segment length to match nBurnFPS cleanly.
+    if (nBurnFPS > 0 && nBurnFPS != nAppVirtualFps) {
+        nAppVirtualFps = nBurnFPS;
+        AudSoundStop();
+        AudSoundInit();
+        AudSetCallback(RunGetNextSound);
+        bAudOkay = 1;
+    }
 
     VidInit();
 

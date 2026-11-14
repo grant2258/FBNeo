@@ -165,6 +165,8 @@ static int RomDescribe(StringSet* pss, struct BurnRomInfo* pri)
 
 static int CheckRomsBoot()
 {
+	int nRet = 0;
+
 	for (int i = 0; i < nRomCount; i++) {
 		struct BurnRomInfo ri;
 		int nState;
@@ -174,14 +176,14 @@ static int CheckRomsBoot()
 		nState = RomFind[i].nState;			// Get the state of the rom in the zip file
 
 		if (nState != 1 && ri.nType && ri.nCrc) {
-			if (ri.nType & 0x80) {
-				return 2;
+			if (!(ri.nType & BRF_OPT) && !(ri.nType & BRF_NODUMP)) {
+				return 1;
 			}
-			return 1;
+			nRet = 2;
 		}
 	}
 
-	return 0;
+	return nRet;
 }
 
 static int GetBZipError(int nState)
@@ -364,15 +366,28 @@ int BzipOpen(bool bootApp)
 		}
 
 		for (int d = 0; d < DIRS_MAX; d++) {
+			if (szAppRomPaths[d][0] == _T('\0'))
+				continue;
 			free(szBzipName[z]);
 			szBzipName[z] = (TCHAR*)malloc(MAX_PATH * sizeof(TCHAR));
 
-            _stprintf(szBzipName[z], _T("%s%hs"), szAppRomPaths[d], szName);
+			int plen = _tcslen(szAppRomPaths[d]);
+			const TCHAR* sep = (plen > 0 && (szAppRomPaths[d][plen - 1] == _T('/') || szAppRomPaths[d][plen - 1] == _T('\\'))) ? _T("") : _T("/");
+			_stprintf(szBzipName[z], _T("%s%s%hs"), szAppRomPaths[d], sep, szName);
 
 			if (ZipOpen(TCHARToANSI(szBzipName[z], NULL, 0)) == 0) {	// Open the rom zip file
 				nZipsFound++;
 				nCurrentZip = z;
 				break;
+			}
+			int zlen = _tcslen(szBzipName[z]);
+			if (zlen > 4 && _tcsicmp(szBzipName[z] + zlen - 4, _T(".zip")) == 0) {
+				_tcscpy(szBzipName[z] + zlen - 4, _T(".7z"));
+				if (ZipOpen(TCHARToANSI(szBzipName[z], NULL, 0)) == 0) {
+					nZipsFound++;
+					nCurrentZip = z;
+					break;
+				}
 			}
 		}
 

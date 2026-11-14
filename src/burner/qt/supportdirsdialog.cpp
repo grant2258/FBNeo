@@ -53,10 +53,12 @@ int SupportDirsDialog::exec()
     for (int i = 0; i < PATH_MAX_HANDLERS; i++)
         m_handlers[i].stringToEditor();
 
-    if (QDialog::exec() == QDialog::Accepted) {
+    int res = QDialog::exec();
+    if (res == QDialog::Accepted) {
         for (int i = 0; i < PATH_MAX_HANDLERS; i++)
             m_handlers[i].editorToString();
     }
+    return res;
 }
 
 bool SupportDirsDialog::load()
@@ -93,6 +95,7 @@ bool SupportDirsDialog::save()
 
     settings.endGroup();
     settings.sync();
+    return true;
 }
 
 void SupportDirsDialog::loadPath(QSettings &settings, QString name, int i)

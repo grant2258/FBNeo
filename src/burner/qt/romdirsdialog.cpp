@@ -3,6 +3,8 @@
 #include "ui_romdirsdialog.h"
 #include "burner.h"
 
+#define QT_ROM_DIRS_MAX 4
+
 TCHAR szAppRomPaths[DIRS_MAX][MAX_PATH] = { { _T("roms/") } };
 
 RomDirsDialog::RomDirsDialog(QWidget *parent) :
@@ -36,18 +38,21 @@ RomDirsDialog::~RomDirsDialog()
 
 int RomDirsDialog::exec()
 {
-    for (int i = 0; i < DIRS_MAX; i++)
+    for (int i = 0; i < QT_ROM_DIRS_MAX; i++)
         m_handlers[i].stringToEditor();
 
-    if (QDialog::exec() == QDialog::Accepted) {
-        for (int i = 0; i < DIRS_MAX; i++)
+    int ret = QDialog::exec();
+    if (ret == QDialog::Accepted) {
+        for (int i = 0; i < QT_ROM_DIRS_MAX; i++)
             m_handlers[i].editorToString();
     }
+    return ret;
 }
 
 void RomDirsDialog::editPath(int no)
 {
-    m_handlers[no].browse(this);
+    if (no >= 0 && no < QT_ROM_DIRS_MAX)
+        m_handlers[no].browse(this);
 }
 
 bool RomDirsDialog::load()
@@ -58,16 +63,17 @@ bool RomDirsDialog::load()
 
     settings.beginReadArray("rom_directories");
 
-    for (int i = 0; i < DIRS_MAX; i++) {
+    for (int i = 0; i < QT_ROM_DIRS_MAX; i++) {
         settings.setArrayIndex(i);
         QString path(settings.value("path").toString());
         if (!path.isEmpty()) {
-            m_handlers[i].edit->setText(settings.value("path").toString());
+            m_handlers[i].edit->setText(path);
             m_handlers[i].editorToString();
         }
     }
 
     settings.endArray();
+    return true;
 }
 
 bool RomDirsDialog::save()
@@ -78,11 +84,12 @@ bool RomDirsDialog::save()
 
     settings.beginWriteArray("rom_directories");
 
-    for (int i = 0; i < DIRS_MAX; i++) {
+    for (int i = 0; i < QT_ROM_DIRS_MAX; i++) {
         settings.setArrayIndex(i);
         settings.setValue("path", m_handlers[i].edit->text());
     }
 
     settings.endArray();
     settings.sync();
+    return true;
 }

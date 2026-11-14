@@ -49,6 +49,9 @@ public:
     static QAudioInterface *get(QObject *parent=0);
     void setBuffer(QAudioInterfaceBuffer *buffer);
     void setFormat(QAudioFormat &format);
+    bool isReady() const;
+    int bytesFree() const;
+    void writeAudio(const char *data, int len);
 signals:
 public slots:
     void play();

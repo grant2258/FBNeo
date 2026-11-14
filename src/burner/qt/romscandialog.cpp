@@ -58,8 +58,10 @@ void RomScanDialog::cancel()
 
 void RomScanDialog::showEvent(QShowEvent *event)
 {
+    QDialog::showEvent(event);
+    ui->progressBar->setTextVisible(true);
     ui->progressBar->setValue(0);
-    m_analyzer.start();
+    QTimer::singleShot(50, &m_analyzer, SLOT(start()));
 }
 
 bool RomScanDialog::load()

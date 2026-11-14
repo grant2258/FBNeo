@@ -56,10 +56,13 @@ SelectDialog::SelectDialog(QWidget *parent) :
     connect(m_actionScanThis, SIGNAL(triggered()), this, SLOT(rescanRomset()));
 
     connect(ui->btnSearch, SIGNAL(clicked()), this, SLOT(doSearch()));
+    connect(ui->leSearch, SIGNAL(textChanged(QString)), this, SLOT(doSearch()));
+    connect(ui->leSearch, SIGNAL(returnPressed()), this, SLOT(doSearch()));
 
     // hide zip name column
     ui->tvDrivers->setColumnHidden(1, true);
     filterDrivers();
+    ui->leSearch->setFocus();
 }
 
 SelectDialog::~SelectDialog()
@@ -163,32 +166,58 @@ void SelectDialog::itemShowZipNames(bool state)
 
 void SelectDialog::doSearch()
 {
-    const QString criteria(ui->leSearch->text());
+    const QString criteria(ui->leSearch->text().trimmed());
     if (criteria.isEmpty()) {
         filterDrivers();
         return;
     }
 
-    QList<QTreeWidgetItem *> found =
-            ui->tvDrivers->findItems(criteria, Qt::MatchContains | Qt::MatchRecursive);
+    auto matches = [&](TreeDriverItem *item) -> bool {
+        return item->text(0).contains(criteria, Qt::CaseInsensitive) ||
+               item->text(1).contains(criteria, Qt::CaseInsensitive);
+    };
 
-    // hide all drivers
+    m_showCount = 0;
     foreach (TreeDriverItem *driver, m_parents.values()) {
         if (driver == nullptr)
             continue;
-        driver->setHidden(true);
-        for (int idx = 0; idx < driver->childCount(); idx++) {
-            driver->child(idx)->setHidden(true);
-        }
-    }
 
-    foreach (QTreeWidgetItem *item, found) {
-        TreeDriverItem *driver = static_cast<TreeDriverItem *>(item);
-        if (!driver->isParent()) {
-            driver->parent()->setHidden(false);
+        driver->setHidden(true);
+        bool parentAllowed = isFiltered(driver);
+        bool parentMatch = parentAllowed && matches(driver);
+        bool anyCloneMatch = false;
+
+        for (int idx = 0; idx < driver->childCount(); idx++) {
+            TreeDriverItem *clone = static_cast<TreeDriverItem *>(driver->child(idx));
+            clone->setHidden(true);
+
+            if (m_showClones && isFiltered(clone) && matches(clone)) {
+                clone->setHidden(false);
+                anyCloneMatch = true;
+                m_showCount++;
+            }
         }
-        driver->setHidden(false);
+
+        if (parentMatch || anyCloneMatch) {
+            driver->setHidden(false);
+            if (anyCloneMatch)
+                driver->setExpanded(true);
+            if (parentAllowed)
+                m_showCount++;
+        }
     }
+    // Ensure currentItem points to a visible row so tree keyboard navigation never stalls on hidden items
+    QTreeWidgetItem *cur = ui->tvDrivers->currentItem();
+    if (!cur || cur->isHidden()) {
+        for (int i = 0; i < ui->tvDrivers->topLevelItemCount(); i++) {
+            QTreeWidgetItem *top = ui->tvDrivers->topLevelItem(i);
+            if (!top->isHidden()) {
+                ui->tvDrivers->setCurrentItem(top);
+                break;
+            }
+        }
+    }
+    updateLabelCounter();
 }
 
 void SelectDialog::updateTitleScreen()
@@ -328,20 +357,26 @@ bool SelectDialog::isFiltered(TreeDriverItem *driver)
 {
     bool status = m_romScanner->status(driver->driverNo()) ? true : false;
 
-    if (!m_showUnavailable)
-        if (!(m_showAvailable && status))
-            return false;
+    if (status && !m_showAvailable)
+        return false;
+    if (!status && !m_showUnavailable)
+        return false;
     return true;
 }
 
 void SelectDialog::filterDrivers()
 {
+    if (!ui->leSearch->text().trimmed().isEmpty()) {
+        doSearch();
+        return;
+    }
+
     auto setupIcon = [&](int stat, TreeDriverItem *item) -> void {
         switch (stat) {
         case 0: item->setIcon(0, m_icoNotFound); break;
-        case 2:
-        case 3: item->setIcon(0, m_icoNotFoundNonEssential); break;
-        case 1: item->setIcon(0, m_icoNotWorking); break;
+        case 1:
+        case 2: item->setIcon(0, m_icoNotFoundNonEssential); break;
+        case 3: item->setIcon(0, QIcon()); break;
         }
     };
 
@@ -358,26 +393,39 @@ void SelectDialog::filterDrivers()
         int stat = m_romScanner->status(driver->driverNo());
         setupIcon(stat, driver);
 
-        if (!isFiltered(driver))
-            continue;
-
-        driver->setHidden(false);
+        bool parentVisible = isFiltered(driver);
+        bool anyCloneVisible = false;
 
         for (int idx = 0; idx < driver->childCount(); idx++) {
             TreeDriverItem *clone = static_cast<TreeDriverItem *>(driver->child(idx));
             clone->setHidden(true);
 
-            int cstat = m_romScanner->status(driver->driverNo());
+            int cstat = m_romScanner->status(clone->driverNo());
             setupIcon(cstat, clone);
 
-            if (m_showClones) {
-                if (!isFiltered(clone))
-                    continue;
+            if (m_showClones && isFiltered(clone)) {
                 clone->setHidden(false);
+                anyCloneVisible = true;
                 m_showCount++;
             }
         }
-        m_showCount++;
+
+        if (parentVisible || anyCloneVisible) {
+            driver->setHidden(false);
+            if (parentVisible)
+                m_showCount++;
+        }
+    }
+    // Ensure currentItem points to a visible row so tree keyboard navigation never stalls on hidden items
+    QTreeWidgetItem *cur = ui->tvDrivers->currentItem();
+    if (!cur || cur->isHidden()) {
+        for (int i = 0; i < ui->tvDrivers->topLevelItemCount(); i++) {
+            QTreeWidgetItem *top = ui->tvDrivers->topLevelItem(i);
+            if (!top->isHidden()) {
+                ui->tvDrivers->setCurrentItem(top);
+                break;
+            }
+        }
     }
     updateLabelCounter();
 }

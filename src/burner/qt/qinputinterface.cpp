@@ -148,12 +148,31 @@ int QtInputState(int nCode)
 
 int QtInputFind(bool CreateBaseline)
 {
+    Q_UNUSED(CreateBaseline);
     if (!bKeyboardRead)
         ReadKeyboard();
 
     for (int i = 0; i < 256; i++)
         if (qKeyboardState[i])
             return i;
+
+    if (!bJoystickRead)
+        ReadJoystick();
+
+    for (int j = 0; j < qInput->joystickCount(); j++) {
+        for (int a = 0; a < 0x10; a++) {
+            if (JoystickState(j, a))
+                return 0x4000 | (j << 8) | a;
+        }
+        for (int h = 0x10; h < 0x20; h++) {
+            if (JoystickState(j, h))
+                return 0x4000 | (j << 8) | h;
+        }
+        for (int b = 0x80; b < 0x100; b++) {
+            if (JoystickState(j, b))
+                return 0x4000 | (j << 8) | b;
+        }
+    }
 
     return -1;
 }
@@ -166,6 +185,21 @@ int QtInputGetControlName(int nCode, TCHAR* pszDeviceName, TCHAR* pszControlName
     if (nCode < 256) {
         strcpy(pszControlName, QString("Key %1").arg(nCode).toLatin1().data());
         strcpy(pszDeviceName, "Keyboard");
+        return 0;
+    }
+
+    if (nCode >= 0x4000 && nCode < 0x8000) {
+        int joy = (nCode - 0x4000) >> 8;
+        int sub = nCode & 0xFF;
+        strcpy(pszDeviceName, QString("Joy %1").arg(joy + 1).toLatin1().data());
+        if (sub < 0x10) {
+            strcpy(pszControlName, QString("Axis %1 %2").arg(sub / 2).arg((sub % 2) ? "+" : "-").toLatin1().data());
+        } else if (sub < 0x20) {
+            const char *dirs[] = { "Left", "Right", "Up", "Down" };
+            strcpy(pszControlName, QString("Hat %1 %2").arg((sub & 0x0F) >> 2).arg(dirs[sub & 3]).toLatin1().data());
+        } else if (sub >= 0x80) {
+            strcpy(pszControlName, QString("Button %1").arg(sub - 0x80 + 1).toLatin1().data());
+        }
         return 0;
     }
 

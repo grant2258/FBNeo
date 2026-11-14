@@ -1,7 +1,7 @@
 // Burner Input module
 #include "burner.h"
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(BUILD_QT)
 #include <vector>
 #endif
 
@@ -51,7 +51,7 @@ static struct InputInOut *pInputInOut[]=
 
 #define INPUT_LEN (sizeof(pInputInOut) / sizeof(pInputInOut[0]))
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(BUILD_QT)
 std::vector<const InputInOut *> InputGetInterfaces()
 {
 	std::vector<const InputInOut *> list;
