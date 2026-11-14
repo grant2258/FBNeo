@@ -11,13 +11,13 @@ TCHAR szAppBlendPath[MAX_PATH];
 
 int nAppVirtualFps = 6000;
 
-TCHAR *GetIsoPath()
-{
-	return NULL;
-}
+// TCHAR *GetIsoPath()
+// {
+// 	return NULL;
+// }
 
 
-void IpsApplyPatches(UINT8 *, char *, bool)
+void IpsApplyPatches(UINT8 *, char *, UINT32, bool)
 {
 
 }
@@ -88,3 +88,13 @@ int main(int argc, char **argv)
 
     return mw.main(app);
 }
+
+UINT32 nIpsDrvDefine = 0, nIpsMemExpLen[SND2_ROM + 1] = { 0 };
+struct MovieExtInfo { int second; int minute; int hour; int day; int dayofweek; int month; int year; } MovieInfo = { 0, 0, 0, 0, 0, 0, 0 };
+TCHAR szAppEEPROMPath[MAX_PATH] = _T("config/games/");
+
+bool is_netgame_or_recording()
+{
+	return false;
+}
+TCHAR szAppHDDPath[MAX_PATH] = _T("hdd/");

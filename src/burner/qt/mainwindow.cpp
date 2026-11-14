@@ -39,6 +39,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+    closeGame();
     BurnLibExit();
     AudSoundStop();
     AudSoundExit();
@@ -266,3 +267,5 @@ void MainWindow::setupInputInterfaces()
     connect(m_actionInputPlugins, SIGNAL(triggered(QAction*)),
             this, SLOT(setupInputInterface(QAction*)));
 }
+
+int counter = 0;
